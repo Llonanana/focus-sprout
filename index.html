@@ -213,6 +213,21 @@
   .stepper button{width:44px; height:44px; border-radius:50%; border:none; background:var(--sand); font-size:22px; font-weight:700}
   .stepper b{font-family:"Nunito",sans-serif; font-size:40px; min-width:60px; text-align:center}
   .modal input[type=number]{width:100%; margin:4px 0 16px; border:1px solid var(--line); border-radius:12px; padding:9px 12px; font:inherit; font-size:18px; color:var(--ink); background:#fff}
+  /* ---------- v1.2：背景音、週次切換、植物編輯 ---------- */
+  .sound-row{display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:6px 8px; width:100%; max-width:340px; font-size:13px}
+  .sound-label{color:var(--muted)}
+  .sound-chips{display:flex; gap:5px}
+  .sound-chips .chip{padding:4px 10px; font-size:12.5px}
+  #volume{width:110px; accent-color:var(--green)}
+  .sound-hint{width:100%; text-align:center; font-size:11.5px; color:var(--muted)}
+  .week-nav{display:flex; align-items:center; gap:4px}
+  .week-nav button{border:none; background:var(--sand); width:26px; height:26px; border-radius:50%; font-size:16px; line-height:1}
+  .week-nav button:hover:not(:disabled){background:#e7d8bf}
+  .bar-col{cursor:pointer}
+  .edit-btn{border:none; background:none; font-size:12px; padding:2px 4px; border-radius:6px; opacity:.55; vertical-align:1px}
+  .edit-btn:hover{opacity:1; background:rgba(0,0,0,.06)}
+  .modal .danger-link{border:none; background:none; color:var(--red); font-size:13px; padding:0; margin-right:auto; text-decoration:underline}
+
   .confetti{position:fixed; top:-14px; width:8px; height:13px; border-radius:2px; z-index:40; pointer-events:none; animation:confetti-fall linear forwards}
   @keyframes confetti-fall{to{transform:translate(var(--dx), 108vh) rotate(var(--rot))}}
 
@@ -285,6 +300,16 @@
               <span class="goal-bar"><span class="goal-fill" id="goalFill"></span></span>
               <span class="goal-num" id="goalNum">0 / 4</span>
             </button>
+            <div class="sound-row">
+              <span class="sound-label">🎧 背景音</span>
+              <div class="sound-chips" id="soundChips">
+                <button class="chip" data-sound="off">關閉</button>
+                <button class="chip" data-sound="rain">🌧 雨聲</button>
+                <button class="chip" data-sound="waves">🌊 海浪</button>
+              </div>
+              <input type="range" id="volume" min="0" max="1" step="0.05" aria-label="背景音音量">
+              <span class="sound-hint">專注時自動播放</span>
+            </div>
           </div>
         </div>
       </section>
@@ -310,9 +335,14 @@
 
       <!-- 每週統計 -->
       <section class="card">
-        <h2>📊 本週專注統計 <span class="meta" id="weekRange"></span></h2>
+        <h2><span>📊 <span id="weekTitle">本週專注統計</span></span>
+          <span class="week-nav">
+            <button id="weekPrev" aria-label="上一週">‹</button>
+            <span class="meta" id="weekRange"></span>
+            <button id="weekNext" aria-label="下一週">›</button>
+          </span></h2>
         <div class="stat-row">
-          <div class="stat"><b id="statTime">0</b><span>本週專注</span></div>
+          <div class="stat"><b id="statTime">0</b><span id="statTimeLabel">本週專注</span></div>
           <div class="stat"><b id="statTomato">0</b><span>完成番茄 🍅</span></div>
           <div class="stat"><b id="statStreak">0</b><span>連續天數 🔥</span></div>
         </div>
@@ -328,7 +358,7 @@
   </div>
 
   <footer>
-    <span>資料只會存在你自己的瀏覽器（localStorage）· 專注小盆栽 v1.1</span>
+    <span>資料只會存在你自己的瀏覽器（localStorage）· 專注小盆栽 v1.2</span>
     <button class="link-btn" id="resetAll">重置所有資料</button>
   </footer>
 </div>
@@ -366,7 +396,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6
 const defaultState = () => ({
   plants: [], currentId: null, garden: [], exams: [],
   log: {},                         // { '2026-10-12': { sec: 1500, n: 1 } }
-  settings: { focusSec: 1500, dailyGoal: 4 },
+  settings: { focusSec: 1500, dailyGoal: 4, sound: 'off', volume: 0.5 },
   seenGuide: false,
   timer: null                      // { mode:'focus'|'break', dur, endAt, left, running, plantId }
 });
@@ -774,7 +804,7 @@ function renderShelf(){
     return `<div class="pot-card ${sel ? 'selected' : ''} ${st}" data-id="${p.id}" title="${locked ? '專注中不能換植物' : '點一下選擇照顧這株'}">
       ${sel ? '<span class="sel-tag">照顧中</span>' : ''}${badge}
       ${plantSVG(p.type, stage, stateClass(p))}
-      <div class="pc-name">${esc(p.name)}</div>
+      <div class="pc-name">${esc(p.name)} <button class="edit-btn" data-act="edit" title="改名或移除" aria-label="編輯 ${esc(p.name)}">✏️</button></div>
       <div class="pc-sub">${T.emoji} ${T.label} · ${T.stages[stage]}</div>
       <div class="dots">${dots}</div>
       ${action}
@@ -807,10 +837,11 @@ function renderExams(){
   }).join('');
 }
 
+let weekOffset = 0;                                // v1.2：0 = 本週、-1 = 上週…
 function weekDays(){
   const now = new Date(); now.setHours(0,0,0,0);
   const offset = (now.getDay() + 6) % 7;          // 週一 = 0
-  const mon = new Date(now); mon.setDate(now.getDate() - offset);
+  const mon = new Date(now); mon.setDate(now.getDate() - offset + weekOffset * 7);
   return Array.from({length:7}, (_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
 }
 function streakDays(){
@@ -834,13 +865,16 @@ function renderStats(){
   const totalN = data.reduce((a,b) => a + b.n, 0);
   const max = Math.max(1500, ...data.map(x => x.sec));
   $('#weekRange').textContent = `${days[0].getMonth()+1}/${days[0].getDate()} – ${days[6].getMonth()+1}/${days[6].getDate()}`;
+  $('#weekTitle').textContent = weekOffset === 0 ? '本週專注統計' : weekOffset === -1 ? '上週專注統計' : `${-weekOffset} 週前的統計`;
+  $('#weekNext').disabled = weekOffset >= 0;
+  $('#statTimeLabel').textContent = weekOffset === 0 ? '本週專注' : '該週專注';
   $('#statTime').textContent = totalSec ? fmtMin(totalSec) : '0分';
   $('#statTomato').textContent = totalN;
   $('#statStreak').textContent = streakDays();
   $('#bars').innerHTML = data.map(x => {
     const h = x.sec ? Math.max(6, Math.round(x.sec / max * 100)) : 3;
     const isToday = x.k === todayK;
-    return `<div class="bar-col" title="${x.d.getMonth()+1}/${x.d.getDate()}：${fmtMin(x.sec)}・${x.n} 顆番茄">
+    return `<div class="bar-col" data-k="${x.k}" title="${x.d.getMonth()+1}/${x.d.getDate()}：${fmtMin(x.sec)}・${x.n} 顆番茄">
       <div class="bar-val">${x.sec ? fmtMin(x.sec) : ''}</div>
       <div class="bar ${x.sec ? '' : 'zero'} ${isToday ? 'today' : ''}" style="height:${h}%"></div>
       <div class="bar-day ${isToday ? 'today' : ''}">${WD[x.d.getDay()]}</div>
@@ -882,7 +916,7 @@ function openGuide(){
       <li><span>🍅</span><div><b>選好植物，開始專注</b><br>預設專注 25 分鐘、休息 5 分鐘，也可以自訂時間。</div></li>
       <li><span>🌱</span><div><b>每 ${PER_STAGE} 次專注長大一級</b><br>完成 ${BLOOM} 次就會開花，可以收成到花園。</div></li>
       <li><span>🥀</span><div><b>中途放棄會枯萎</b><br>再完成 1 次專注就能救回；連續放棄 2 次就會枯死。</div></li>
-      <li><span>🎯</span><div><b>設定每日目標</b><br>右邊還有考試倒數和每週統計，幫你掌握進度。</div></li>
+      <li><span>🎯</span><div><b>設定每日目標</b><br>還能開背景白噪音，搭配考試倒數和每週統計掌握進度。</div></li>
     </ul>
     <div class="row"><button class="btn primary" data-close>開始吧！</button></div>`);
   if (!S.seenGuide){ S.seenGuide = true; save(); }
@@ -924,6 +958,7 @@ function render(){
   lastCtrlSig = '';
   renderToday(); renderChips(); renderStage(); renderCaring(); renderShelf();
   renderExams(); renderStats(); renderGarden(); renderTimer();
+  renderSound(); syncAmbient();
 }
 
 /* =========================================================
@@ -1005,6 +1040,7 @@ $('#shelf').addEventListener('click', e => {
   const card = e.target.closest('.pot-card'); if (!card) return;
   const p = getPlant(card.dataset.id); if (!p) return;
   const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'edit'){ openEditPlant(p); return; }
   if (act === 'remove'){
     S.plants = S.plants.filter(x => x.id !== p.id);
     if (S.currentId === p.id) S.currentId = (S.plants.find(x => !x.dead) || {}).id || null;
@@ -1023,6 +1059,131 @@ $('#shelf').addEventListener('click', e => {
   S.currentId = p.id;
   if (S.timer) S.timer.plantId = p.id;   // 休息中換植物，下一輪就照顧它
   save(); render();
+});
+
+/* ---------- v1.2：植物改名 / 移除 ---------- */
+function openEditPlant(p){
+  const locked = S.timer && S.timer.mode === 'focus' && S.timer.plantId === p.id;
+  openModal(`
+    <h3>✏️ 編輯 ${esc(p.name)}</h3>
+    <p>${TYPES[p.type].emoji} ${TYPES[p.type].label} · 已專注 ${p.growth} 次</p>
+    <label for="renameInput">名字</label>
+    <input type="text" id="renameInput" maxlength="10" value="${esc(p.name)}">
+    <div class="row">
+      <button class="danger-link" id="removePlant" ${locked ? 'disabled title="專注中不能移除"' : ''}>🗑 移除這株</button>
+      <button class="btn ghost" data-close>取消</button>
+      <button class="btn primary" id="renameSave">儲存</button>
+    </div>`);
+  const input = $('#renameInput');
+  const ok = () => {
+    const name = input.value.trim();
+    if (!name){ toast('名字不能是空白喔'); return; }
+    const old = p.name; p.name = name; save(); closeModal(); render();
+    if (old !== name) toast(`✏️ ${old} 改名為 ${name}`);
+  };
+  $('#renameSave').onclick = ok;
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') ok(); });
+  $('#removePlant').onclick = () => {
+    if (locked) return;
+    openModal(`
+      <h3>🗑 確定要移除 ${esc(p.name)} 嗎？</h3>
+      <p>它的成長進度會消失，無法復原。</p>
+      <div class="row"><button class="btn ghost" data-close>先不要</button><button class="btn warn" id="removeOk">移除</button></div>`);
+    $('#removeOk').onclick = () => {
+      S.plants = S.plants.filter(x => x.id !== p.id);
+      if (S.currentId === p.id) S.currentId = (S.plants.find(x => !x.dead) || {}).id || null;
+      save(); closeModal(); render(); toast(`已移除 ${p.name}`);
+    };
+  };
+  setTimeout(() => input.select(), 50);
+}
+
+/* ---------- v1.2：背景白噪音（用 Web Audio 即時產生，不需要音檔） ---------- */
+let amb = null;
+function noiseBuffer(kind){
+  const len = actx.sampleRate * 4;
+  const buf = actx.createBuffer(1, len, actx.sampleRate);
+  const d = buf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < len; i++){
+    const w = Math.random() * 2 - 1;
+    if (kind === 'brown'){ last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+    else d[i] = w;
+  }
+  return buf;
+}
+function startAmbient(){
+  const kind = S.settings.sound;
+  if (kind === 'off' || amb) return;
+  unlockAudio(); if (!actx) return;
+  const src = actx.createBufferSource(); src.loop = true;
+  const out = actx.createGain(); out.gain.value = 0; out.connect(actx.destination);
+  let lfo = null, base;
+  if (kind === 'rain'){
+    src.buffer = noiseBuffer('white');
+    const hp = actx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 400;
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3000;
+    src.connect(hp).connect(lp).connect(out); base = 0.12;
+  } else {
+    src.buffer = noiseBuffer('brown');
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
+    const swell = actx.createGain(); swell.gain.value = 0.6;
+    lfo = actx.createOscillator(); lfo.frequency.value = 0.11;           // 約 9 秒一次的浪潮起伏
+    const depth = actx.createGain(); depth.gain.value = 0.4;
+    lfo.connect(depth).connect(swell.gain);
+    src.connect(lp).connect(swell).connect(out); lfo.start(); base = 0.9;
+  }
+  src.start();
+  amb = { src, out, lfo, base };
+  out.gain.linearRampToValueAtTime(base * S.settings.volume, actx.currentTime + 1.2);
+}
+function stopAmbient(){
+  if (!amb) return;
+  const a = amb; amb = null;
+  const t = actx.currentTime;
+  a.out.gain.cancelScheduledValues(t);
+  a.out.gain.setValueAtTime(a.out.gain.value, t);
+  a.out.gain.linearRampToValueAtTime(0, t + 0.8);
+  setTimeout(() => { try{ a.src.stop(); a.lfo && a.lfo.stop(); a.out.disconnect(); }catch(e){} }, 900);
+}
+let previewing = false;
+function syncAmbient(){
+  if (previewing) return;
+  const want = !!S.timer && S.timer.mode === 'focus' && S.timer.running && S.settings.sound !== 'off';
+  if (want && !amb) startAmbient();
+  else if (!want && amb) stopAmbient();
+}
+function renderSound(){
+  document.querySelectorAll('#soundChips .chip').forEach(c => c.classList.toggle('on', c.dataset.sound === S.settings.sound));
+  $('#volume').value = S.settings.volume;
+  $('#volume').disabled = S.settings.sound === 'off';
+}
+$('#soundChips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  S.settings.sound = c.dataset.sound; save(); renderSound();
+  if (amb) stopAmbient();
+  if (S.settings.sound === 'off'){ toast('🔇 已關閉背景音'); return; }
+  const focusing = S.timer && S.timer.mode === 'focus' && S.timer.running;
+  setTimeout(() => {
+    if (focusing){ syncAmbient(); return; }
+    previewing = true; startAmbient();                   // 沒在專注時先試聽 3 秒
+    setTimeout(() => { previewing = false; if (amb) stopAmbient(); syncAmbient(); }, 3000);
+  }, 50);
+  toast(focusing ? `🎧 已切換為${c.textContent}` : `🎧 試聽${c.textContent}，開始專注後會自動播放`);
+});
+$('#volume').addEventListener('input', e => {
+  S.settings.volume = Number(e.target.value); save();
+  if (amb && actx) amb.out.gain.setTargetAtTime(amb.base * S.settings.volume, actx.currentTime, 0.1);
+});
+
+/* ---------- v1.2：統計切換週次、點長條看明細 ---------- */
+$('#weekPrev').addEventListener('click', () => { weekOffset--; renderStats(); });
+$('#weekNext').addEventListener('click', () => { if (weekOffset < 0){ weekOffset++; renderStats(); } });
+$('#bars').addEventListener('click', e => {
+  const col = e.target.closest('.bar-col'); if (!col) return;
+  const [y,m,d] = col.dataset.k.split('-').map(Number);
+  const x = S.log[col.dataset.k] || { sec:0, n:0 };
+  toast(x.n ? `📊 ${m}/${d}（${WD[new Date(y,m-1,d).getDay()]}）專注 ${fmtMin(x.sec)}，完成 ${x.n} 顆番茄` : `📊 ${m}/${d} 這天沒有專注紀錄`);
 });
 
 $('#stage').addEventListener('click', e => { if (e.target.closest('[data-act="add"]')) openPlantModal(); });
