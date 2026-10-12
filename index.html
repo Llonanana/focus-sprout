@@ -195,6 +195,27 @@
   .modal label{font-size:13px; color:var(--muted)}
   .modal input[type=text]{width:100%; margin:4px 0 16px; border:1px solid var(--line); border-radius:12px; padding:9px 12px; font:inherit; color:var(--ink); background:#fff}
   .modal .row{display:flex; gap:10px; justify-content:flex-end}
+  /* ---------- v1.1：說明、每日目標、彩帶 ---------- */
+  .header-right{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .help-btn{border:1px solid var(--line); background:var(--green-l); color:var(--green-d); font-weight:700; font-size:13.5px; padding:6px 14px; border-radius:999px}
+  .help-btn:hover{background:#d4e1c4}
+  .goal{display:flex; align-items:center; gap:10px; width:100%; max-width:320px; border:1px solid var(--line); background:#fbf4e8; border-radius:14px; padding:8px 12px; font-size:13px}
+  .goal:hover{background:#f6ecdb}
+  .goal-label{white-space:nowrap; color:var(--muted)}
+  .goal-bar{flex:1; height:8px; border-radius:999px; background:#e8dcc7; overflow:hidden}
+  .goal-fill{display:block; height:100%; width:0; background:var(--clay); border-radius:999px; transition:width .5s}
+  .goal.done .goal-fill{background:var(--green)}
+  .goal-num{font-family:"Nunito",sans-serif; font-weight:800; white-space:nowrap}
+  .guide{list-style:none; padding:0; margin:0 0 16px; display:flex; flex-direction:column; gap:10px}
+  .guide li{display:flex; gap:10px; align-items:flex-start; font-size:14px; background:#fbf4e8; border-radius:12px; padding:9px 12px}
+  .guide li span{font-size:20px; line-height:1.2}
+  .stepper{display:flex; align-items:center; justify-content:center; gap:18px; margin:6px 0 18px}
+  .stepper button{width:44px; height:44px; border-radius:50%; border:none; background:var(--sand); font-size:22px; font-weight:700}
+  .stepper b{font-family:"Nunito",sans-serif; font-size:40px; min-width:60px; text-align:center}
+  .modal input[type=number]{width:100%; margin:4px 0 16px; border:1px solid var(--line); border-radius:12px; padding:9px 12px; font:inherit; font-size:18px; color:var(--ink); background:#fff}
+  .confetti{position:fixed; top:-14px; width:8px; height:13px; border-radius:2px; z-index:40; pointer-events:none; animation:confetti-fall linear forwards}
+  @keyframes confetti-fall{to{transform:translate(var(--dx), 108vh) rotate(var(--rot))}}
+
   .toast{
     position:fixed; left:50%; bottom:24px; transform:translate(-50%,30px); opacity:0; pointer-events:none;
     background:#4a3f35; color:#fff; padding:11px 20px; border-radius:14px; font-size:14.5px; z-index:30;
@@ -226,7 +247,10 @@
       <div class="logo">🪴</div>
       <h1>專注小盆栽<small>每一次專注，都讓你的植物長大一點</small></h1>
     </div>
-    <div class="date-chip" id="today"></div>
+    <div class="header-right">
+      <button class="help-btn" id="helpBtn">❓ 玩法說明</button>
+      <div class="date-chip" id="today"></div>
+    </div>
   </header>
 
   <div class="grid">
@@ -256,6 +280,11 @@
             </div>
             <div class="controls" id="controls"></div>
             <div class="caring" id="caring"></div>
+            <button class="goal" id="goalBox" title="點一下修改每日目標">
+              <span class="goal-label">🎯 今日目標</span>
+              <span class="goal-bar"><span class="goal-fill" id="goalFill"></span></span>
+              <span class="goal-num" id="goalNum">0 / 4</span>
+            </button>
           </div>
         </div>
       </section>
@@ -299,7 +328,7 @@
   </div>
 
   <footer>
-    <span>資料只會存在你自己的瀏覽器（localStorage）· 專注小盆栽 v1.0</span>
+    <span>資料只會存在你自己的瀏覽器（localStorage）· 專注小盆栽 v1.1</span>
     <button class="link-btn" id="resetAll">重置所有資料</button>
   </footer>
 </div>
@@ -337,14 +366,19 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6
 const defaultState = () => ({
   plants: [], currentId: null, garden: [], exams: [],
   log: {},                         // { '2026-10-12': { sec: 1500, n: 1 } }
-  settings: { focusSec: 1500 },
+  settings: { focusSec: 1500, dailyGoal: 4 },
+  seenGuide: false,
   timer: null                      // { mode:'focus'|'break', dur, endAt, left, running, plantId }
 });
 let S = load();
 function load(){
   try{
     const raw = JSON.parse(localStorage.getItem(KEY));
-    if (raw && Array.isArray(raw.plants)) return Object.assign(defaultState(), raw);
+    if (raw && Array.isArray(raw.plants)){
+      const s = Object.assign(defaultState(), raw);
+      s.settings = Object.assign(defaultState().settings, raw.settings || {});   // 舊版資料補上新設定
+      return s;
+    }
   }catch(e){}
   return defaultState();
 }
@@ -532,6 +566,8 @@ function finishFocus(){
   S.log[k] = S.log[k] || { sec:0, n:0 };
   S.log[k].sec += sec; S.log[k].n += 1;
 
+  const goalHit = S.log[k].n === S.settings.dailyGoal;
+  let bloomed = false;
   const p = getPlant(t.plantId);
   let msg = '🍅 完成一顆番茄！';
   if (p && !p.dead){
@@ -543,6 +579,7 @@ function finishFocus(){
       const before = stageOf(p);
       p.growth += 1;
       const after = stageOf(p);
+      bloomed = after === 4 && before < 4;
       if (after > before) msg = after === 4 ? `🎉 ${p.name} 開花了！可以收成到花園囉` : `🌱 ${p.name} 長大了：${TYPES[p.type].stages[after]}`;
       else msg = `🍅 完成一顆番茄！${p.name} 再 1 次就會長大`;
     } else {
@@ -553,6 +590,25 @@ function finishFocus(){
   S.timer = { mode:'break', dur:b, endAt: Date.now() + b, left: b, running: true, plantId: t.plantId };
   save(); render(); animateHero('pop');
   chime(); toast(msg); notify('專注完成！', msg + '　休息一下吧 ☕');
+  if (bloomed || goalHit) confetti();
+  if (goalHit) setTimeout(() => toast(`🎯 達成今日目標 ${S.settings.dailyGoal} 顆番茄！太厲害了`), bloomed ? 3600 : 2600);
+}
+
+/* ---------- v1.1：彩帶慶祝 ---------- */
+function confetti(){
+  const colors = ['#6b8f5e','#c97b5a','#f2c14e','#f4b6c2','#8fb879','#e9ac2f'];
+  for (let i = 0; i < 70; i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.background = colors[i % colors.length];
+    c.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+    c.style.setProperty('--rot', (Math.random() * 900 - 450) + 'deg');
+    c.style.animationDuration = (2.4 + Math.random() * 1.8) + 's';
+    c.style.animationDelay = (Math.random() * .5) + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 5000);
+  }
 }
 function finishBreak(){
   S.timer = null;
@@ -614,6 +670,7 @@ function renderTimer(){
   const ring = $('#ring');
   ring.style.strokeDasharray = RING_C;
   ring.style.strokeDashoffset = RING_C * (1 - progress);
+  ring.style.opacity = progress > 0.004 ? 1 : 0;      // v1.1：剛開始時不顯示圓點
   $('#ringWrap').classList.toggle('break', !!t && t.mode === 'break');
 
   const pill = $('#modePill');
@@ -791,6 +848,61 @@ function renderStats(){
   }).join('');
   const tk = S.log[todayK];
   $('#todayCount').textContent = tk && tk.n ? `今天完成 ${tk.n} 顆 🍅` : '今天還沒開始';
+  renderGoal();
+}
+
+/* ---------- v1.1：每日目標 ---------- */
+function renderGoal(){
+  const n = (S.log[dateKey()] || { n:0 }).n;
+  const goal = S.settings.dailyGoal;
+  $('#goalNum').textContent = `${n} / ${goal}`;
+  $('#goalFill').style.width = Math.min(100, n / goal * 100) + '%';
+  $('#goalBox').classList.toggle('done', n >= goal);
+}
+function openGoalModal(){
+  let g = S.settings.dailyGoal;
+  openModal(`
+    <h3>🎯 設定每日目標</h3>
+    <p>一天想完成幾顆番茄？達成時會有彩帶慶祝 🎉</p>
+    <div class="stepper"><button id="gMinus" aria-label="減少">−</button><b id="gVal">${g}</b><button id="gPlus" aria-label="增加">＋</button></div>
+    <div class="row"><button class="btn ghost" data-close>取消</button><button class="btn primary" id="gSave">儲存</button></div>`);
+  const show = () => $('#gVal').textContent = g;
+  $('#gMinus').onclick = () => { g = Math.max(1, g - 1); show(); };
+  $('#gPlus').onclick = () => { g = Math.min(12, g + 1); show(); };
+  $('#gSave').onclick = () => { S.settings.dailyGoal = g; save(); closeModal(); renderGoal(); toast(`🎯 每日目標改為 ${g} 顆番茄`); };
+}
+
+/* ---------- v1.1：玩法說明 ---------- */
+function openGuide(){
+  openModal(`
+    <h3>🪴 歡迎來到專注小盆栽</h3>
+    <p>用番茄鐘專心讀書，順便養出一座小花園！</p>
+    <ul class="guide">
+      <li><span>🌰</span><div><b>種一株植物</b><br>多肉、向日葵、櫻花樹、仙人掌任選，最多同時養 ${MAX_PLANTS} 株。</div></li>
+      <li><span>🍅</span><div><b>選好植物，開始專注</b><br>預設專注 25 分鐘、休息 5 分鐘，也可以自訂時間。</div></li>
+      <li><span>🌱</span><div><b>每 ${PER_STAGE} 次專注長大一級</b><br>完成 ${BLOOM} 次就會開花，可以收成到花園。</div></li>
+      <li><span>🥀</span><div><b>中途放棄會枯萎</b><br>再完成 1 次專注就能救回；連續放棄 2 次就會枯死。</div></li>
+      <li><span>🎯</span><div><b>設定每日目標</b><br>右邊還有考試倒數和每週統計，幫你掌握進度。</div></li>
+    </ul>
+    <div class="row"><button class="btn primary" data-close>開始吧！</button></div>`);
+  if (!S.seenGuide){ S.seenGuide = true; save(); }
+}
+function openCustomModal(){
+  openModal(`
+    <h3>⏱ 自訂專注時間</h3>
+    <p>輸入 1 到 120 分鐘。</p>
+    <input type="number" id="customMin" min="1" max="120" value="${Math.max(1, Math.round(focusSec() / 60))}">
+    <div class="row"><button class="btn ghost" data-close>取消</button><button class="btn primary" id="customSave">確定</button></div>`);
+  const input = $('#customMin');
+  const ok = () => {
+    const m = parseInt(input.value, 10);
+    if (!(m >= 1 && m <= 120)){ toast('請輸入 1 到 120 之間的數字'); input.focus(); return; }
+    S.settings.focusSec = m * 60; save(); closeModal(); renderChips(); renderTimer();
+    toast(`⏱ 專注時間改為 ${m} 分鐘`);
+  };
+  $('#customSave').onclick = ok;
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') ok(); });
+  setTimeout(() => input.select(), 50);
 }
 
 function renderGarden(){
@@ -883,13 +995,7 @@ $('#controls').addEventListener('click', e => {
 $('#chips').addEventListener('click', e => {
   const c = e.target.closest('.chip'); if (!c || c.disabled) return;
   let v = c.dataset.sec;
-  if (v === 'custom'){
-    const input = prompt('自訂專注時間（1–120 分鐘）', Math.round(focusSec() / 60));
-    if (input === null) return;
-    const m = parseInt(input, 10);
-    if (!(m >= 1 && m <= 120)){ toast('請輸入 1 到 120 之間的數字'); return; }
-    v = m * 60;
-  }
+  if (v === 'custom'){ openCustomModal(); return; }
   S.settings.focusSec = Number(v);
   save(); renderChips(); renderTimer();
   if (Number(v) === 10) toast('⚡ 測試模式：專注 10 秒、休息 5 秒（示範用）');
@@ -947,8 +1053,12 @@ $('#resetAll').addEventListener('click', () => {
 /* =========================================================
    啟動
    ========================================================= */
+$('#helpBtn').addEventListener('click', openGuide);
+$('#goalBox').addEventListener('click', openGoalModal);
+
 $('#examDate').min = dateKey();
 render();
+if (!S.seenGuide) setTimeout(openGuide, 400);   // 第一次來自動顯示玩法說明
 setInterval(tick, 250);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); renderStats(); } });
 </script>
