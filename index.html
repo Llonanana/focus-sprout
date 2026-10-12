@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>專注小盆栽 Focus Sprout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4eee2; --card:#fffaf1; --ink:#4a3f35; --muted:#8c7f70; --line:#e7dccb;
+    --green:#6b8f5e; --green-d:#557548; --green-l:#e2ead6;
+    --clay:#c97b5a; --clay-d:#a9603f; --clay-l:#f5e1d6;
+    --sand:#efe3cf; --red:#c0563f; --red-l:#f7ded6;
+    --shadow:0 6px 22px rgba(110,90,60,.09);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--ink); line-height:1.55;
+    font-family:"Noto Sans TC", system-ui, -apple-system, "Microsoft JhengHei", sans-serif;
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 8% -5%, #faf5ec 0, transparent 38%),
+      radial-gradient(circle at 105% 105%, #e9dfcc 0, transparent 42%);
+    min-height:100vh;
+  }
+  button{font:inherit; color:inherit; cursor:pointer}
+  button:disabled{cursor:not-allowed; opacity:.45}
+  .wrap{max-width:1180px; margin:0 auto; padding:26px 16px 40px}
+
+  /* ---------- header ---------- */
+  header{display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:20px}
+  .brand{display:flex; align-items:center; gap:12px}
+  .logo{width:46px; height:46px; border-radius:14px; background:var(--green-l); display:grid; place-items:center; font-size:26px}
+  h1{margin:0; font-size:26px; letter-spacing:.06em}
+  h1 small{display:block; font-size:12.5px; color:var(--muted); font-weight:500; letter-spacing:.03em}
+  .date-chip{color:var(--muted); font-size:14px; background:var(--card); border:1px solid var(--line); padding:6px 14px; border-radius:999px}
+
+  /* ---------- layout ---------- */
+  .grid{display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:20px; align-items:start}
+  .col{display:flex; flex-direction:column; gap:20px; min-width:0}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:22px; padding:20px; box-shadow:var(--shadow)}
+  .card h2{margin:0 0 14px; font-size:16.5px; display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .card h2 .meta{font-size:13px; color:var(--muted); font-weight:500}
+
+  /* ---------- hero: plant + timer ---------- */
+  .hero{display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:18px; align-items:center}
+  .stage{
+    position:relative; border-radius:18px; min-height:300px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    background:linear-gradient(180deg,#f8efdf 0%, #efe2cb 100%); padding:16px 12px 14px; overflow:hidden;
+  }
+  .stage::before{ /* window light */
+    content:""; position:absolute; top:-40px; right:-30px; width:180px; height:180px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,246,220,.95) 0, rgba(255,246,220,0) 70%);
+  }
+  .stage::after{content:""; position:absolute; left:0; right:0; bottom:0; height:58px; background:#e3d3b8; border-top:3px solid #d8c5a6}
+  .stage .plant-svg{width:210px; height:auto; position:relative; z-index:1; margin-bottom:-6px}
+  .stage-label{position:relative; z-index:1; margin-top:2px; text-align:center}
+  .stage-label b{font-size:16px}
+  .stage-label span{display:block; font-size:13px; color:var(--muted)}
+  .stage-empty{position:absolute; top:46px; left:0; right:0; text-align:center; z-index:2; color:var(--muted); font-size:14px}
+
+  .timer{display:flex; flex-direction:column; align-items:center; gap:14px}
+  .ring-wrap{position:relative; width:230px; height:230px}
+  .ring-wrap svg{width:100%; height:100%; transform:rotate(-90deg)}
+  .ring-bg{fill:none; stroke:var(--sand); stroke-width:12}
+  .ring-fg{fill:none; stroke:var(--green); stroke-width:12; stroke-linecap:round; transition:stroke-dashoffset .3s linear, stroke .4s}
+  .ring-wrap.break .ring-fg{stroke:var(--clay)}
+  .ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px}
+  .pill{font-size:12.5px; padding:3px 12px; border-radius:999px; background:var(--sand); color:var(--muted); font-weight:500}
+  .pill.focus{background:var(--green-l); color:var(--green-d)}
+  .pill.break{background:var(--clay-l); color:var(--clay-d)}
+  .pill.paused{background:#ece6dc; color:var(--muted)}
+  .time{font-family:"Nunito", system-ui, sans-serif; font-weight:800; font-size:56px; letter-spacing:.02em; line-height:1.1; font-variant-numeric:tabular-nums}
+  .today-count{font-size:13px; color:var(--muted)}
+
+  .chips{display:flex; flex-wrap:wrap; gap:6px; justify-content:center}
+  .chip{border:1px solid var(--line); background:#fff; padding:5px 12px; border-radius:999px; font-size:13px}
+  .chip.on{background:var(--green); border-color:var(--green); color:#fff}
+  .chip.test{border-style:dashed}
+  .chip.test.on{background:var(--clay); border-color:var(--clay)}
+
+  .controls{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+  .btn{border:none; border-radius:14px; padding:11px 22px; font-weight:700; font-size:15px; transition:transform .1s, background .2s}
+  .btn:active:not(:disabled){transform:scale(.97)}
+  .btn.primary{background:var(--green); color:#fff}
+  .btn.primary:hover:not(:disabled){background:var(--green-d)}
+  .btn.ghost{background:var(--sand); color:var(--ink)}
+  .btn.ghost:hover:not(:disabled){background:#e7d8bf}
+  .btn.warn{background:var(--red-l); color:var(--red)}
+  .btn.warn:hover{background:#f1cbbf}
+  .caring{font-size:13.5px; color:var(--muted); text-align:center}
+  .caring b{color:var(--ink)}
+  .caring.alert{color:var(--red)}
+
+  /* ---------- plant shelf ---------- */
+  .shelf{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px}
+  .pot-card{
+    position:relative; border:2px solid transparent; background:#fbf4e8; border-radius:18px; padding:10px 10px 12px;
+    text-align:center; cursor:pointer; transition:border-color .2s, transform .15s, background .2s;
+  }
+  .pot-card:hover{transform:translateY(-2px); background:#f8eedd}
+  .pot-card.selected{border-color:var(--green); background:#f3f3e4}
+  .pot-card.dead{cursor:default}
+  .pot-card .plant-svg{width:96px; height:auto}
+  .sel-tag{position:absolute; top:8px; left:8px; font-size:11px; background:var(--green); color:#fff; padding:1px 8px; border-radius:999px}
+  .pc-name{font-weight:700; font-size:15px; margin-top:2px; word-break:break-all}
+  .pc-sub{font-size:12px; color:var(--muted)}
+  .dots{display:flex; justify-content:center; gap:4px; margin:7px 0 6px}
+  .dot{width:8px; height:8px; border-radius:50%; background:#e3d7c3}
+  .dot.on{background:var(--green)}
+  .dot.stage-end{margin-right:4px}
+  .pc-hint{font-size:12px; color:var(--muted)}
+  .pc-hint.withered{color:var(--clay-d); font-weight:500}
+  .mini{border:none; border-radius:10px; padding:5px 10px; font-size:12.5px; font-weight:700; background:var(--green); color:#fff}
+  .mini.danger{background:var(--red-l); color:var(--red)}
+  .badge{position:absolute; top:8px; right:8px; font-size:11px; padding:1px 8px; border-radius:999px}
+  .badge.withered{background:var(--clay-l); color:var(--clay-d)}
+  .badge.dead{background:#e6e1da; color:#7a7168}
+  .badge.bloom{background:#fbe3ea; color:#b45a72}
+  .empty{color:var(--muted); font-size:14px; text-align:center; padding:22px 10px; border:2px dashed var(--line); border-radius:16px; grid-column:1/-1}
+  .add-btn{border:none; background:var(--green-l); color:var(--green-d); font-weight:700; font-size:13.5px; padding:6px 14px; border-radius:999px}
+  .add-btn:hover:not(:disabled){background:#d4e1c4}
+
+  /* plant states & animation */
+  .plant{transform-box:fill-box; transform-origin:50% 100%; transition:transform .7s, filter .7s, opacity .7s}
+  .healthy .plant{animation:sway 5s ease-in-out infinite}
+  .withered .plant{filter:saturate(.25) sepia(.6) brightness(.93); transform:rotate(8deg) scaleY(.93)}
+  .dead .plant{filter:grayscale(1) brightness(.78); opacity:.6; transform:rotate(17deg) scaleY(.82)}
+  .pop .plant{animation:pop .9s ease-out}
+  .shake .plant{animation:shake .6s}
+  @keyframes sway{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.6deg)}}
+  @keyframes pop{0%{transform:scale(.8)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:rotate(8deg)}25%{transform:rotate(-4deg)}50%{transform:rotate(12deg)}75%{transform:rotate(4deg)}}
+  .petal{transform-box:fill-box; animation:fall 4.5s linear infinite}
+  @keyframes fall{0%{transform:translate(0,0); opacity:0}10%{opacity:1}100%{transform:translate(14px,62px) rotate(200deg); opacity:0}}
+  .sparkle{animation:twinkle 2s ease-in-out infinite; transform-box:fill-box; transform-origin:center}
+  @keyframes twinkle{0%,100%{opacity:.2; transform:scale(.6)}50%{opacity:1; transform:scale(1)}}
+
+  /* ---------- exams ---------- */
+  .exam-form{display:grid; grid-template-columns:minmax(0,1fr) 140px auto; gap:8px; margin-bottom:12px}
+  .exam-form input{width:100%; border:1px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font:inherit; font-size:14px; color:var(--ink)}
+  .exam-form input:focus{outline:2px solid var(--green-l); border-color:var(--green)}
+  .exam-form button{border:none; border-radius:12px; padding:0 14px; background:var(--green); color:#fff; font-weight:700}
+  .exam-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+  .exam{display:flex; align-items:center; gap:12px; background:#fbf4e8; border-radius:14px; padding:9px 12px}
+  .exam .days{min-width:62px; text-align:center; font-family:"Nunito",sans-serif; font-weight:800; font-size:22px; line-height:1.05; color:var(--green-d)}
+  .exam .days small{display:block; font-family:"Noto Sans TC",sans-serif; font-size:11px; font-weight:500; color:var(--muted)}
+  .exam.soon{background:var(--red-l)}
+  .exam.soon .days{color:var(--red)}
+  .exam.past{opacity:.55}
+  .exam .info{flex:1; min-width:0}
+  .exam .info b{display:block; font-size:14.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .exam .info span{font-size:12.5px; color:var(--muted)}
+  .del{border:none; background:none; color:var(--muted); font-size:18px; width:30px; height:30px; border-radius:50%}
+  .del:hover{background:rgba(0,0,0,.06); color:var(--red)}
+
+  /* ---------- stats ---------- */
+  .stat-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px}
+  .stat{background:#fbf4e8; border-radius:14px; padding:10px 8px; text-align:center}
+  .stat b{display:block; font-family:"Nunito",sans-serif; font-weight:800; font-size:22px; line-height:1.2}
+  .stat span{font-size:12px; color:var(--muted)}
+  .bars{display:grid; grid-template-columns:repeat(7,1fr); gap:8px; align-items:end; height:150px}
+  .bar-col{display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:4px}
+  .bar-val{font-size:11.5px; color:var(--muted); min-height:16px}
+  .bar{width:100%; max-width:30px; border-radius:8px 8px 4px 4px; background:var(--green); min-height:4px; transition:height .5s}
+  .bar.zero{background:#e6dac6}
+  .bar.today{background:var(--clay)}
+  .bar-day{font-size:12.5px; color:var(--muted)}
+  .bar-day.today{color:var(--clay-d); font-weight:700}
+
+  /* ---------- garden ---------- */
+  .garden{display:grid; grid-template-columns:repeat(auto-fill, minmax(82px,1fr)); gap:10px}
+  .flower{text-align:center; background:#fbf4e8; border-radius:14px; padding:6px 4px 8px}
+  .flower .plant-svg{width:56px; height:auto}
+  .flower b{display:block; font-size:12.5px; word-break:break-all}
+  .flower span{font-size:11px; color:var(--muted)}
+
+  footer{margin-top:26px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; font-size:12.5px; color:var(--muted)}
+  .link-btn{border:none; background:none; color:var(--muted); text-decoration:underline; font-size:12.5px; padding:0}
+  .link-btn:hover{color:var(--red)}
+
+  /* ---------- modal & toast ---------- */
+  .modal-bg{position:fixed; inset:0; background:rgba(60,45,30,.35); display:none; align-items:center; justify-content:center; padding:16px; z-index:20}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--card); border-radius:22px; padding:22px; width:100%; max-width:440px; box-shadow:0 20px 50px rgba(60,40,20,.25); animation:rise .25s ease-out}
+  @keyframes rise{from{transform:translateY(14px); opacity:0}to{transform:none; opacity:1}}
+  .modal h3{margin:0 0 6px; font-size:18px}
+  .modal p{margin:0 0 14px; color:var(--muted); font-size:14px}
+  .type-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px}
+  .type-opt{border:2px solid var(--line); background:#fbf4e8; border-radius:14px; padding:6px 2px 8px; text-align:center; font-size:12.5px}
+  .type-opt .plant-svg{width:100%; max-width:64px; height:auto}
+  .type-opt.on{border-color:var(--green); background:#f1f3e3}
+  .modal label{font-size:13px; color:var(--muted)}
+  .modal input[type=text]{width:100%; margin:4px 0 16px; border:1px solid var(--line); border-radius:12px; padding:9px 12px; font:inherit; color:var(--ink); background:#fff}
+  .modal .row{display:flex; gap:10px; justify-content:flex-end}
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translate(-50%,30px); opacity:0; pointer-events:none;
+    background:#4a3f35; color:#fff; padding:11px 20px; border-radius:14px; font-size:14.5px; z-index:30;
+    transition:all .3s; max-width:calc(100% - 32px); text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.2)
+  }
+  .toast.show{opacity:1; transform:translate(-50%,0)}
+
+  @media (max-width:900px){
+    .grid{grid-template-columns:1fr}
+  }
+  @media (max-width:600px){
+    .wrap{padding:18px 12px 32px}
+    h1{font-size:22px}
+    .hero{grid-template-columns:1fr}
+    .stage{min-height:250px}
+    .stage .plant-svg{width:170px}
+    .ring-wrap{width:200px; height:200px}
+    .time{font-size:48px}
+    .shelf{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .exam-form{grid-template-columns:1fr 1fr}
+    .exam-form input:first-child{grid-column:1/-1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">🪴</div>
+      <h1>專注小盆栽<small>每一次專注，都讓你的植物長大一點</small></h1>
+    </div>
+    <div class="date-chip" id="today"></div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <!-- 計時器 + 目前照顧的植物 -->
+      <section class="card">
+        <div class="hero">
+          <div class="stage" id="stage"></div>
+          <div class="timer">
+            <div class="ring-wrap" id="ringWrap">
+              <svg viewBox="0 0 230 230" aria-hidden="true">
+                <circle class="ring-bg" cx="115" cy="115" r="100"/>
+                <circle class="ring-fg" id="ring" cx="115" cy="115" r="100"/>
+              </svg>
+              <div class="ring-center">
+                <span class="pill" id="modePill">準備開始</span>
+                <div class="time" id="time">25:00</div>
+                <div class="today-count" id="todayCount"></div>
+              </div>
+            </div>
+            <div class="chips" id="chips">
+              <button class="chip" data-sec="900">15 分</button>
+              <button class="chip" data-sec="1500">25 分</button>
+              <button class="chip" data-sec="3000">50 分</button>
+              <button class="chip" data-sec="custom" id="customChip">自訂</button>
+              <button class="chip test" data-sec="10" title="示範用：10 秒專注、5 秒休息">⚡ 測試 10 秒</button>
+            </div>
+            <div class="controls" id="controls"></div>
+            <div class="caring" id="caring"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 植物架 -->
+      <section class="card">
+        <h2>🌿 我的植物架 <span style="display:flex;align-items:center;gap:10px"><span class="meta" id="shelfCount"></span><button class="add-btn" id="addPlant">＋ 種新植物</button></span></h2>
+        <div class="shelf" id="shelf"></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <!-- 考試倒數 -->
+      <section class="card">
+        <h2>📅 期末考倒數</h2>
+        <form class="exam-form" id="examForm" autocomplete="off">
+          <input type="text" id="examName" placeholder="科目，例如：微積分" maxlength="20" required>
+          <input type="date" id="examDate" required>
+          <button type="submit">新增</button>
+        </form>
+        <ul class="exam-list" id="examList"></ul>
+      </section>
+
+      <!-- 每週統計 -->
+      <section class="card">
+        <h2>📊 本週專注統計 <span class="meta" id="weekRange"></span></h2>
+        <div class="stat-row">
+          <div class="stat"><b id="statTime">0</b><span>本週專注</span></div>
+          <div class="stat"><b id="statTomato">0</b><span>完成番茄 🍅</span></div>
+          <div class="stat"><b id="statStreak">0</b><span>連續天數 🔥</span></div>
+        </div>
+        <div class="bars" id="bars"></div>
+      </section>
+
+      <!-- 花園 -->
+      <section class="card">
+        <h2>🌼 我的花園 <span class="meta" id="gardenCount"></span></h2>
+        <div class="garden" id="garden"></div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <span>資料只會存在你自己的瀏覽器（localStorage）· 專注小盆栽 v1.0</span>
+    <button class="link-btn" id="resetAll">重置所有資料</button>
+  </footer>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   基本設定
+   ========================================================= */
+const KEY = 'focus-sprout-v1';
+const MAX_PLANTS = 4;      // 植物架最多放幾株
+const PER_STAGE = 2;       // 每完成幾次專注升一級
+const BLOOM = 8;           // 完成 8 次 = 開花（第 4 階段）
+const RING_C = 2 * Math.PI * 100;
+
+const TYPES = {
+  succulent: { label:'多肉植物', emoji:'🪴', short:'小肉', stages:['種子','發芽','小肉肉','肉肉叢','開花了！'] },
+  sunflower: { label:'向日葵',   emoji:'🌻', short:'小葵', stages:['種子','發芽','幼苗','含苞待放','盛開！'] },
+  sakura:    { label:'櫻花樹',   emoji:'🌸', short:'小櫻', stages:['種子','發芽','小樹苗','小樹','滿開！'] },
+  cactus:    { label:'仙人掌',   emoji:'🌵', short:'小刺', stages:['種子','發芽','小仙人掌','長出手臂','開花了！'] },
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const dateKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const WD = ['日','一','二','三','四','五','六'];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+/* =========================================================
+   資料存取（localStorage）
+   ========================================================= */
+const defaultState = () => ({
+  plants: [], currentId: null, garden: [], exams: [],
+  log: {},                         // { '2026-10-12': { sec: 1500, n: 1 } }
+  settings: { focusSec: 1500 },
+  timer: null                      // { mode:'focus'|'break', dur, endAt, left, running, plantId }
+});
+let S = load();
+function load(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(KEY));
+    if (raw && Array.isArray(raw.plants)) return Object.assign(defaultState(), raw);
+  }catch(e){}
+  return defaultState();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* =========================================================
+   植物圖案（SVG）
+   ========================================================= */
+const leaf = (cx,cy,rx,ry,rot,fill='#7ea86a') =>
+  `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${cx} ${cy})" fill="${fill}"/>`;
+
+function succulentRing(n, spread, cy, rx, ry, fill, tip){
+  let s = '';
+  for (let i = 0; i < n; i++){
+    const a = -spread + (2*spread) * (i/(n-1));
+    s += `<g transform="rotate(${a} 60 91)"><ellipse cx="60" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}"/>` +
+         `<ellipse cx="60" cy="${cy-ry+3.5}" rx="${(rx*.55).toFixed(1)}" ry="2.6" fill="${tip}"/></g>`;
+  }
+  return s;
+}
+function cactusCol(x,y,w,h){
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w/2}" fill="#6a994e"/>` +
+         `<path d="M${x+w/2} ${y+5} V${y+h-4}" stroke="#86b36b" stroke-width="1.6" stroke-linecap="round"/>`;
+}
+const spines = pts => pts.map(([x,y]) => `<path d="M${x-2} ${y} h4" stroke="#f6eedc" stroke-width="1.2" stroke-linecap="round"/>`).join('');
+const sunStem = top => `<path d="M60 92 Q57 ${(92+top)/2} 60 ${top}" stroke="#5f8a4f" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+
+function plantBody(type, stage){
+  if (!type) return '';
+  if (stage === 0) return `<ellipse cx="60" cy="88" rx="6.5" ry="4.4" fill="#8b5e3c"/><path d="M56.5 87 q3.5 -2.4 7 0" stroke="#b07f55" stroke-width="1.1" fill="none"/>`;
+  if (stage === 1) return `<path d="M60 92 Q59 82 60 74" stroke="#6b8f5e" stroke-width="3" fill="none" stroke-linecap="round"/>` +
+                          leaf(52,73,8,4,-25,'#8ab872') + leaf(68,73,8,4,25,'#8ab872');
+  switch(type){
+    case 'succulent':
+      if (stage === 2) return succulentRing(5,60,80,6,12,'#9cbf8f','#d3a3a6');
+      if (stage === 3) return succulentRing(7,80,74,7.5,18,'#86ad7d','#d49ca0') + succulentRing(5,45,80,6,12,'#a9c99b','#dcb0b5');
+      return `<path d="M62 78 Q68 58 76 38" stroke="#7aa36a" stroke-width="2.6" fill="none" stroke-linecap="round"/>` +
+             [[76,35],[71,41],[81,42]].map(([x,y]) => `<circle cx="${x}" cy="${y}" r="5" fill="#f19ca8"/><circle cx="${x}" cy="${y}" r="1.8" fill="#f6d36b"/>`).join('') +
+             succulentRing(7,80,74,7.5,18,'#86ad7d','#d49ca0') + succulentRing(5,45,80,6,12,'#a9c99b','#dcb0b5');
+    case 'sunflower':
+      if (stage === 2) return sunStem(58) + leaf(50,74,11,5,-30) + leaf(70,66,11,5,30) + leaf(60,55,4,7,0,'#8fb879');
+      if (stage === 3) return sunStem(36) + leaf(47,78,13,5.5,-30) + leaf(73,70,13,5.5,30) + leaf(48,58,11,5,-25) + leaf(72,52,10,4.5,25) +
+                              `<circle cx="60" cy="33" r="9" fill="#7ea86a"/>` + leaf(56,26,2.6,5,-15,'#f2c14e') + leaf(64,26,2.6,5,15,'#f2c14e');
+      {
+        let petals = '';
+        for (let i = 0; i < 14; i++) petals += `<ellipse cx="60" cy="22" rx="5.2" ry="11" fill="#e9ac2f" transform="rotate(${i*360/14 + 12.8} 60 36)"/>`;
+        for (let i = 0; i < 14; i++) petals += `<ellipse cx="60" cy="23" rx="5" ry="10" fill="#f6c94f" transform="rotate(${i*360/14} 60 36)"/>`;
+        let seeds = '';
+        [[56,33],[63,32],[60,38],[55,39],[65,38],[60,30]].forEach(([x,y]) => seeds += `<circle cx="${x}" cy="${y}" r="1.2" fill="#3e2514"/>`);
+        return sunStem(40) + leaf(47,78,13,5.5,-30) + leaf(73,70,13,5.5,30) + leaf(48,60,11,5,-25) + leaf(72,54,10,4.5,25) +
+               petals + `<circle cx="60" cy="36" r="10.5" fill="#6b4226"/>` + seeds;
+      }
+    case 'sakura': {
+      const trunk = w => `<path d="M60 92 Q57 72 60 52" stroke="#8a5a3b" stroke-width="${w}" fill="none" stroke-linecap="round"/>` +
+                         `<path d="M60 68 Q50 60 44 50" stroke="#8a5a3b" stroke-width="3.5" fill="none" stroke-linecap="round"/>` +
+                         `<path d="M60 62 Q70 54 77 46" stroke="#8a5a3b" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
+      if (stage === 2) return `<path d="M60 92 Q61 78 60 64" stroke="#8a5a3b" stroke-width="4" fill="none" stroke-linecap="round"/>` +
+                              `<circle cx="60" cy="58" r="9" fill="#8fb879"/><circle cx="51" cy="63" r="6" fill="#9fc48a"/><circle cx="69" cy="62" r="6" fill="#9fc48a"/>`;
+      if (stage === 3) return trunk(6) + [[60,36,16,'#8fb879'],[44,46,12,'#a3c68c'],[77,42,12,'#a3c68c'],[52,27,10,'#9cc287'],[69,27,10,'#8fb879']]
+                              .map(([x,y,r,f]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"/>`).join('');
+      const canopy = [[60,34,18,'#f4b6c2'],[42,44,13,'#f7cad0'],[79,40,13,'#f7cad0'],[50,23,11,'#eea2b2'],[71,22,11,'#f4b6c2'],[60,47,12,'#f7cad0']]
+                     .map(([x,y,r,f]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"/>`).join('');
+      const dots = [[52,30],[66,36],[45,46],[78,40],[58,20],[70,26],[62,46]].map(([x,y]) => `<circle cx="${x}" cy="${y}" r="1.8" fill="#e07f98"/>`).join('');
+      const fall = [[40,58,0],[82,54,1.5],[68,62,3]].map(([x,y,d]) => `<ellipse class="petal" style="animation-delay:${d}s" cx="${x}" cy="${y}" rx="2.4" ry="1.6" fill="#f2a7b8"/>`).join('');
+      return trunk(6) + canopy + dots + fall;
+    }
+    case 'cactus':
+      if (stage === 2) return cactusCol(51,64,18,30) + spines([[55,72],[65,78],[55,85],[65,68]]);
+      if (stage === 3) return `<rect x="38" y="72" width="14" height="8" rx="4" fill="#6a994e"/>` + cactusCol(33,56,11,24) +
+                              cactusCol(49,42,22,52) + spines([[54,52],[66,60],[54,70],[66,80],[38,64]]);
+      {
+        let flower = '';
+        for (let i = 0; i < 6; i++) flower += `<ellipse cx="60" cy="34" rx="3.6" ry="6.5" fill="#f28da0" transform="rotate(${i*60} 60 40)"/>`;
+        return `<rect x="38" y="72" width="14" height="8" rx="4" fill="#6a994e"/>` + cactusCol(33,56,11,24) +
+               `<rect x="67" y="64" width="14" height="8" rx="4" fill="#6a994e"/>` + cactusCol(76,48,11,24) +
+               cactusCol(49,42,22,52) + spines([[54,54],[66,60],[54,70],[66,80],[38,64],[81,56]]) +
+               flower + `<circle cx="60" cy="40" r="3.2" fill="#f6d36b"/>`;
+      }
+  }
+  return '';
+}
+
+function plantSVG(type, stage, cls = ''){
+  const sparkles = (type && stage === 4)
+    ? [[22,30,0],[98,22,.7],[100,62,1.3]].map(([x,y,d]) => `<path class="sparkle" style="animation-delay:${d}s" d="M${x} ${y-5} L${x+1.4} ${y-1.4} L${x+5} ${y} L${x+1.4} ${y+1.4} L${x} ${y+5} L${x-1.4} ${y+1.4} L${x-5} ${y} L${x-1.4} ${y-1.4}Z" fill="#f2c14e"/>`).join('')
+    : '';
+  return `<svg class="plant-svg ${cls}" viewBox="0 0 120 140" aria-hidden="true">
+    <path d="M26 98 L94 98 L87 133 Q86 137 82 137 L38 137 Q34 137 33 133 Z" fill="#c97b5a"/>
+    <rect x="31" y="108" width="58" height="3" rx="1.5" fill="#d99474" opacity=".7"/>
+    <rect x="21" y="89" width="78" height="12" rx="4" fill="#b8694a"/>
+    <ellipse cx="60" cy="91.5" rx="35" ry="3.8" fill="#6e4b36"/>
+    <g class="plant">${plantBody(type, stage)}</g>${sparkles}
+  </svg>`;
+}
+
+/* =========================================================
+   植物狀態工具
+   ========================================================= */
+const stageOf = p => Math.min(4, Math.floor(p.growth / PER_STAGE));
+const getPlant = id => S.plants.find(p => p.id === id);
+function statusOf(p){
+  if (p.dead) return 'dead';
+  if (p.withered) return 'withered';
+  if (p.growth >= BLOOM) return 'bloom';
+  return 'growing';
+}
+function stateClass(p){
+  const st = statusOf(p);
+  return st === 'dead' ? 'dead' : st === 'withered' ? 'withered' : 'healthy';
+}
+function hintOf(p){
+  const st = statusOf(p);
+  if (st === 'withered') return p.streak >= 1 ? '🥀 完成 1 次專注就能救回' : '🥀 枯萎中';
+  if (st === 'growing'){
+    const need = PER_STAGE - (p.growth % PER_STAGE);
+    return `再 ${need} 次專注就長大`;
+  }
+  return '';
+}
+
+/* =========================================================
+   計時器邏輯
+   ========================================================= */
+const focusSec = () => S.settings.focusSec || 1500;
+const breakSec = () => focusSec() === 10 ? 5 : (focusSec() >= 3000 ? 600 : 300);
+
+function remainingMs(){
+  const t = S.timer;
+  if (!t) return focusSec() * 1000;
+  return t.running ? Math.max(0, t.endAt - Date.now()) : t.left;
+}
+
+function startFocus(){
+  const p = getPlant(S.currentId);
+  if (!p || p.dead){ toast('先在植物架選一株要照顧的植物 🌱'); return; }
+  unlockAudio();
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  const dur = focusSec() * 1000;
+  S.timer = { mode:'focus', dur, endAt: Date.now() + dur, left: dur, running: true, plantId: p.id };
+  save(); render();
+}
+function pauseTimer(){
+  const t = S.timer; if (!t || !t.running) return;
+  t.left = Math.max(0, t.endAt - Date.now()); t.running = false;
+  save(); render();
+}
+function resumeTimer(){
+  const t = S.timer; if (!t || t.running) return;
+  t.endAt = Date.now() + t.left; t.running = true;
+  save(); render();
+}
+function skipBreak(){ S.timer = null; save(); render(); toast('準備好就開始下一輪吧！'); }
+
+function askGiveUp(){
+  const p = getPlant(S.timer && S.timer.plantId);
+  const name = p ? esc(p.name) : '植物';
+  const danger = p && p.withered;
+  openModal(`
+    <h3>${danger ? '⚠️ 真的要放棄嗎？' : '🥀 確定要放棄嗎？'}</h3>
+    <p>${danger
+      ? `<b>${name}</b> 已經枯萎了，再放棄一次它就會<b style="color:var(--red)">死掉</b>，只能重新種植。`
+      : `放棄這一輪的話，<b>${name}</b> 會枯萎。之後再完成 1 次專注就能救回來。`}</p>
+    <div class="row">
+      <button class="btn ghost" data-close>繼續專注</button>
+      <button class="btn warn" id="confirmGiveUp">我要放棄</button>
+    </div>`);
+  $('#confirmGiveUp').onclick = () => { closeModal(); giveUp(); };
+}
+function giveUp(){
+  const p = getPlant(S.timer && S.timer.plantId);
+  S.timer = null;
+  if (p){
+    p.streak = (p.streak || 0) + 1;
+    p.withered = true;
+    if (p.streak >= 2){ p.dead = true; toast(`😢 ${p.name} 連續枯萎兩次，已經枯死了…`); }
+    else toast(`🥀 ${p.name} 枯萎了，下一輪好好專注把它救回來！`);
+  }
+  save(); render(); animateHero('shake');
+}
+
+function finishFocus(){
+  const t = S.timer;
+  const sec = Math.round(t.dur / 1000);
+  const k = dateKey();
+  S.log[k] = S.log[k] || { sec:0, n:0 };
+  S.log[k].sec += sec; S.log[k].n += 1;
+
+  const p = getPlant(t.plantId);
+  let msg = '🍅 完成一顆番茄！';
+  if (p && !p.dead){
+    p.streak = 0;
+    if (p.withered){
+      p.withered = false;
+      msg = `💧 ${p.name} 被你救回來了！`;
+    } else if (p.growth < BLOOM){
+      const before = stageOf(p);
+      p.growth += 1;
+      const after = stageOf(p);
+      if (after > before) msg = after === 4 ? `🎉 ${p.name} 開花了！可以收成到花園囉` : `🌱 ${p.name} 長大了：${TYPES[p.type].stages[after]}`;
+      else msg = `🍅 完成一顆番茄！${p.name} 再 1 次就會長大`;
+    } else {
+      msg = `🍅 完成一顆番茄！${p.name} 已經盛開，記得收成喔`;
+    }
+  }
+  const b = breakSec() * 1000;
+  S.timer = { mode:'break', dur:b, endAt: Date.now() + b, left: b, running: true, plantId: t.plantId };
+  save(); render(); animateHero('pop');
+  chime(); toast(msg); notify('專注完成！', msg + '　休息一下吧 ☕');
+}
+function finishBreak(){
+  S.timer = null;
+  save(); render();
+  chime(); toast('☕ 休息結束，準備開始下一輪！'); notify('休息結束', '準備開始下一輪專注吧！');
+}
+
+function tick(){
+  const t = S.timer;
+  if (t && t.running && t.endAt - Date.now() <= 0){
+    t.mode === 'focus' ? finishFocus() : finishBreak();
+    return;
+  }
+  renderTimer();
+}
+
+/* =========================================================
+   聲音與通知
+   ========================================================= */
+let actx = null;
+function unlockAudio(){
+  try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); }catch(e){}
+}
+function chime(){
+  try{
+    unlockAudio();
+    const now = actx.currentTime;
+    [523.25, 659.25, 783.99].forEach((f, i) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      const t0 = now + i * .18;
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(.2, t0 + .02);
+      g.gain.exponentialRampToValueAtTime(.001, t0 + .7);
+      o.connect(g).connect(actx.destination);
+      o.start(t0); o.stop(t0 + .75);
+    });
+  }catch(e){}
+}
+function notify(title, body){
+  try{
+    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') new Notification(title, { body });
+  }catch(e){}
+}
+
+/* =========================================================
+   畫面渲染
+   ========================================================= */
+let lastCtrlSig = '';
+function renderTimer(){
+  const t = S.timer;
+  const ms = remainingMs();
+  const total = Math.ceil(ms / 1000);
+  const mm = pad(Math.floor(total / 60)), ss = pad(total % 60);
+  $('#time').textContent = `${mm}:${ss}`;
+
+  const dur = t ? t.dur : focusSec() * 1000;
+  const progress = t ? 1 - ms / dur : 0;
+  const ring = $('#ring');
+  ring.style.strokeDasharray = RING_C;
+  ring.style.strokeDashoffset = RING_C * (1 - progress);
+  $('#ringWrap').classList.toggle('break', !!t && t.mode === 'break');
+
+  const pill = $('#modePill');
+  let pillText = '準備開始', pillCls = 'pill';
+  if (t){
+    if (!t.running){ pillText = '已暫停'; pillCls += ' paused'; }
+    else if (t.mode === 'focus'){ pillText = '專注中 🍅'; pillCls += ' focus'; }
+    else { pillText = '休息一下 ☕'; pillCls += ' break'; }
+  }
+  pill.textContent = pillText; pill.className = pillCls;
+
+  document.title = t
+    ? `${t.running ? (t.mode === 'focus' ? '⏳' : '☕') : '⏸'} ${mm}:${ss} · 專注小盆栽`
+    : '專注小盆栽 Focus Sprout';
+
+  // 按鈕（狀態改變時才重畫，避免點擊失效）
+  const p = getPlant(S.currentId);
+  const canStart = p && !p.dead;
+  const sig = t ? `${t.mode}-${t.running}` : `idle-${canStart}`;
+  if (sig !== lastCtrlSig){
+    lastCtrlSig = sig;
+    let html;
+    if (!t) html = `<button class="btn primary" data-act="start" ${canStart ? '' : 'disabled'}>▶ 開始專注</button>`;
+    else if (t.mode === 'focus') html = (t.running
+        ? `<button class="btn ghost" data-act="pause">⏸ 暫停</button>`
+        : `<button class="btn primary" data-act="resume">▶ 繼續</button>`) +
+        `<button class="btn warn" data-act="giveup">🏳 放棄</button>`;
+    else html = (t.running
+        ? `<button class="btn ghost" data-act="pause">⏸ 暫停</button>`
+        : `<button class="btn primary" data-act="resume">▶ 繼續</button>`) +
+        `<button class="btn ghost" data-act="skip">⏭ 跳過休息</button>`;
+    $('#controls').innerHTML = html;
+  }
+}
+
+function renderChips(){
+  const active = !!S.timer;
+  const sec = focusSec();
+  const presets = [900, 1500, 3000, 10];
+  document.querySelectorAll('#chips .chip').forEach(c => {
+    const v = c.dataset.sec;
+    const on = v === 'custom' ? !presets.includes(sec) : Number(v) === sec;
+    c.classList.toggle('on', on);
+    c.disabled = active;
+  });
+  $('#customChip').textContent = presets.includes(sec) ? '自訂' : `自訂 ${Math.round(sec/60)} 分`;
+}
+
+function renderStage(){
+  const p = getPlant(S.currentId);
+  const el = $('#stage');
+  if (!p){
+    el.innerHTML = `<div class="stage-empty">${S.plants.length ? '在下方植物架<br>點一株植物來照顧 👇' : '還沒有植物<br><button class="add-btn" style="margin-top:8px" data-act="add">＋ 種下第一顆種子</button>'}</div>
+      ${plantSVG(null, 0, '')}<div class="stage-label"><b>空盆栽</b><span>&nbsp;</span></div>`;
+    return;
+  }
+  const st = stageOf(p), T = TYPES[p.type];
+  const status = statusOf(p);
+  const sub = status === 'dead' ? '🪦 已經枯死了' : status === 'withered' ? '🥀 枯萎中，完成 1 次專注救回它' :
+              status === 'bloom' ? '🌼 盛開中！可以收成到花園' : `${T.stages[st]} · ${hintOf(p)}`;
+  el.innerHTML = plantSVG(p.type, st, stateClass(p)) +
+    `<div class="stage-label"><b>${T.emoji} ${esc(p.name)}</b><span>${sub}</span></div>`;
+}
+function animateHero(cls){
+  const svg = $('#stage .plant-svg');
+  if (!svg) return;
+  svg.classList.add(cls);
+  setTimeout(() => svg.classList.remove(cls), 900);
+}
+
+function renderCaring(){
+  const el = $('#caring');
+  const t = S.timer;
+  const p = getPlant(t ? t.plantId : S.currentId);
+  el.className = 'caring';
+  if (!p){ el.innerHTML = S.plants.length ? '請先選擇這一輪要照顧的植物' : '先種一株植物，才能開始專注喔'; el.classList.add('alert'); return; }
+  if (p.dead){ el.innerHTML = `${esc(p.name)} 已經枯死，請換一株或重新種植`; el.classList.add('alert'); return; }
+  if (t && t.mode === 'focus') el.innerHTML = `正在照顧 <b>${esc(p.name)}</b>，中途放棄它會枯萎喔`;
+  else if (t) el.innerHTML = `休息時間，可以先換一株植物照顧`;
+  else el.innerHTML = `這一輪要照顧：<b>${TYPES[p.type].emoji} ${esc(p.name)}</b>`;
+}
+
+function renderShelf(){
+  const box = $('#shelf');
+  $('#shelfCount').textContent = `${S.plants.length}/${MAX_PLANTS}`;
+  $('#addPlant').disabled = S.plants.length >= MAX_PLANTS;
+  $('#addPlant').title = S.plants.length >= MAX_PLANTS ? '植物架滿了，先收成或清除一株' : '';
+  if (!S.plants.length){ box.innerHTML = `<div class="empty">植物架空空的 🌰<br>按右上角「種新植物」開始吧！</div>`; return; }
+  const locked = S.timer && S.timer.mode === 'focus';
+  box.innerHTML = S.plants.map(p => {
+    const st = statusOf(p), stage = stageOf(p), T = TYPES[p.type];
+    const sel = p.id === S.currentId;
+    let dots = '';
+    for (let i = 0; i < BLOOM; i++) dots += `<span class="dot ${i < p.growth ? 'on' : ''} ${i % 2 === 1 && i < BLOOM-1 ? 'stage-end' : ''}"></span>`;
+    const badge = st === 'dead' ? '<span class="badge dead">枯死</span>' :
+                  st === 'withered' ? '<span class="badge withered">枯萎</span>' :
+                  st === 'bloom' ? '<span class="badge bloom">盛開</span>' : '';
+    const action = st === 'dead' ? `<button class="mini danger" data-act="remove">清除並重種</button>` :
+                   st === 'bloom' ? `<button class="mini" data-act="harvest" ${locked && sel ? 'disabled' : ''}>收成到花園 🌼</button>` :
+                   `<div class="pc-hint ${st}">${hintOf(p)}</div>`;
+    return `<div class="pot-card ${sel ? 'selected' : ''} ${st}" data-id="${p.id}" title="${locked ? '專注中不能換植物' : '點一下選擇照顧這株'}">
+      ${sel ? '<span class="sel-tag">照顧中</span>' : ''}${badge}
+      ${plantSVG(p.type, stage, stateClass(p))}
+      <div class="pc-name">${esc(p.name)}</div>
+      <div class="pc-sub">${T.emoji} ${T.label} · ${T.stages[stage]}</div>
+      <div class="dots">${dots}</div>
+      ${action}
+    </div>`;
+  }).join('');
+}
+
+function daysUntil(ds){
+  const [y,m,d] = ds.split('-').map(Number);
+  const target = new Date(y, m-1, d);
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.round((target - now) / 86400000);
+}
+function renderExams(){
+  const list = $('#examList');
+  if (!S.exams.length){ list.innerHTML = `<div class="empty">還沒有考試，新增一科來倒數吧 📚</div>`; return; }
+  const items = S.exams.map(e => ({ ...e, d: daysUntil(e.date) }))
+    .sort((a,b) => (a.d < 0) - (b.d < 0) || (a.d >= 0 ? a.d - b.d : b.d - a.d));
+  list.innerHTML = items.map(e => {
+    const [y,m,d] = e.date.split('-').map(Number);
+    const wd = WD[new Date(y, m-1, d).getDay()];
+    const cls = e.d < 0 ? 'past' : e.d <= 3 ? 'soon' : '';
+    const days = e.d < 0 ? `<span style="font-size:14px">已結束</span>` : e.d === 0 ? `<span style="font-size:16px">今天！</span>` : `${e.d}<small>天</small>`;
+    const note = e.d < 0 ? '考完了，辛苦了 🎉' : e.d === 0 ? '加油！你可以的 💪' : e.d <= 3 ? '⚠️ 快到了，衝刺！' : `${m}/${d}（${wd}）`;
+    return `<li class="exam ${cls}">
+      <div class="days">${days}</div>
+      <div class="info"><b>${esc(e.name)}</b><span>${e.d >= 0 && e.d <= 3 ? `${m}/${d}（${wd}）· ` : ''}${note}</span></div>
+      <button class="del" data-id="${e.id}" title="刪除" aria-label="刪除 ${esc(e.name)}">×</button>
+    </li>`;
+  }).join('');
+}
+
+function weekDays(){
+  const now = new Date(); now.setHours(0,0,0,0);
+  const offset = (now.getDay() + 6) % 7;          // 週一 = 0
+  const mon = new Date(now); mon.setDate(now.getDate() - offset);
+  return Array.from({length:7}, (_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
+}
+function streakDays(){
+  const d = new Date(); d.setHours(0,0,0,0);
+  if (!(S.log[dateKey(d)] && S.log[dateKey(d)].n)) d.setDate(d.getDate() - 1);   // 今天還沒專注不算斷
+  let n = 0;
+  while (S.log[dateKey(d)] && S.log[dateKey(d)].n){ n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+function fmtMin(sec){
+  const m = Math.round(sec / 60);
+  if (sec > 0 && m === 0) return '<1分';
+  if (m < 60) return `${m}分`;
+  return `${Math.floor(m/60)}時${m%60 ? (m%60) + '分' : ''}`;
+}
+function renderStats(){
+  const days = weekDays();
+  const todayK = dateKey();
+  const data = days.map(d => ({ d, k: dateKey(d), ...(S.log[dateKey(d)] || { sec:0, n:0 }) }));
+  const totalSec = data.reduce((a,b) => a + b.sec, 0);
+  const totalN = data.reduce((a,b) => a + b.n, 0);
+  const max = Math.max(1500, ...data.map(x => x.sec));
+  $('#weekRange').textContent = `${days[0].getMonth()+1}/${days[0].getDate()} – ${days[6].getMonth()+1}/${days[6].getDate()}`;
+  $('#statTime').textContent = totalSec ? fmtMin(totalSec) : '0分';
+  $('#statTomato').textContent = totalN;
+  $('#statStreak').textContent = streakDays();
+  $('#bars').innerHTML = data.map(x => {
+    const h = x.sec ? Math.max(6, Math.round(x.sec / max * 100)) : 3;
+    const isToday = x.k === todayK;
+    return `<div class="bar-col" title="${x.d.getMonth()+1}/${x.d.getDate()}：${fmtMin(x.sec)}・${x.n} 顆番茄">
+      <div class="bar-val">${x.sec ? fmtMin(x.sec) : ''}</div>
+      <div class="bar ${x.sec ? '' : 'zero'} ${isToday ? 'today' : ''}" style="height:${h}%"></div>
+      <div class="bar-day ${isToday ? 'today' : ''}">${WD[x.d.getDay()]}</div>
+    </div>`;
+  }).join('');
+  const tk = S.log[todayK];
+  $('#todayCount').textContent = tk && tk.n ? `今天完成 ${tk.n} 顆 🍅` : '今天還沒開始';
+}
+
+function renderGarden(){
+  $('#gardenCount').textContent = S.garden.length ? `共 ${S.garden.length} 株` : '';
+  const g = $('#garden');
+  if (!S.garden.length){ g.innerHTML = `<div class="empty">植物開花後收成，就會在這裡展示 🌼</div>`; return; }
+  g.innerHTML = S.garden.map(f => {
+    const [, m, d] = f.date.split('-').map(Number);
+    return `<div class="flower" title="${TYPES[f.type].label}">${plantSVG(f.type, 4, 'healthy')}<b>${esc(f.name)}</b><span>${m}/${d} 收成</span></div>`;
+  }).join('');
+}
+
+function renderToday(){
+  const n = new Date();
+  $('#today').textContent = `${n.getFullYear()}/${n.getMonth()+1}/${n.getDate()}（${WD[n.getDay()]}）`;
+}
+
+function render(){
+  lastCtrlSig = '';
+  renderToday(); renderChips(); renderStage(); renderCaring(); renderShelf();
+  renderExams(); renderStats(); renderGarden(); renderTimer();
+}
+
+/* =========================================================
+   Modal / Toast
+   ========================================================= */
+function openModal(html){ $('#modal').innerHTML = html; $('#modalBg').classList.add('open'); }
+function closeModal(){ $('#modalBg').classList.remove('open'); }
+$('#modalBg').addEventListener('click', e => { if (e.target.id === 'modalBg' || e.target.hasAttribute('data-close')) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+let toastTimer;
+function toast(msg){
+  const el = $('#toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3400);
+}
+
+/* =========================================================
+   種新植物
+   ========================================================= */
+function openPlantModal(){
+  if (S.plants.length >= MAX_PLANTS){ toast('植物架滿了！先收成或清除一株吧'); return; }
+  let chosen = 'succulent';
+  openModal(`
+    <h3>🌱 種一株新植物</h3>
+    <p>選一種植物，幫它取個名字。完成 ${BLOOM} 次專注它就會開花！</p>
+    <div class="type-grid">
+      ${Object.entries(TYPES).map(([k,T]) => `<button class="type-opt ${k === chosen ? 'on' : ''}" data-type="${k}">${plantSVG(k, 4, 'healthy')}<div>${T.label}</div></button>`).join('')}
+    </div>
+    <label for="plantName">名字</label>
+    <input type="text" id="plantName" maxlength="10" placeholder="${TYPES[chosen].short}">
+    <div class="row">
+      <button class="btn ghost" data-close>取消</button>
+      <button class="btn primary" id="doPlant">種下去 🌰</button>
+    </div>`);
+  const nameInput = $('#plantName');
+  document.querySelectorAll('.type-opt').forEach(b => b.onclick = () => {
+    chosen = b.dataset.type;
+    document.querySelectorAll('.type-opt').forEach(x => x.classList.toggle('on', x === b));
+    nameInput.placeholder = TYPES[chosen].short;
+  });
+  const plant = () => {
+    const name = nameInput.value.trim() || TYPES[chosen].short;
+    const p = { id: uid(), type: chosen, name, growth: 0, withered: false, streak: 0, dead: false, born: dateKey() };
+    S.plants.push(p);
+    const cur = getPlant(S.currentId);
+    if (!(S.timer && S.timer.mode === 'focus') && (!cur || cur.dead)) S.currentId = p.id;
+    save(); closeModal(); render();
+    toast(`🌰 種下了 ${name}！開始專注讓它長大吧`);
+  };
+  $('#doPlant').onclick = plant;
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') plant(); });
+  setTimeout(() => nameInput.focus(), 50);
+}
+
+/* =========================================================
+   事件綁定
+   ========================================================= */
+$('#controls').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'start') startFocus();
+  else if (act === 'pause') pauseTimer();
+  else if (act === 'resume') resumeTimer();
+  else if (act === 'giveup') askGiveUp();
+  else if (act === 'skip') skipBreak();
+});
+
+$('#chips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c || c.disabled) return;
+  let v = c.dataset.sec;
+  if (v === 'custom'){
+    const input = prompt('自訂專注時間（1–120 分鐘）', Math.round(focusSec() / 60));
+    if (input === null) return;
+    const m = parseInt(input, 10);
+    if (!(m >= 1 && m <= 120)){ toast('請輸入 1 到 120 之間的數字'); return; }
+    v = m * 60;
+  }
+  S.settings.focusSec = Number(v);
+  save(); renderChips(); renderTimer();
+  if (Number(v) === 10) toast('⚡ 測試模式：專注 10 秒、休息 5 秒（示範用）');
+});
+
+$('#shelf').addEventListener('click', e => {
+  const card = e.target.closest('.pot-card'); if (!card) return;
+  const p = getPlant(card.dataset.id); if (!p) return;
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'remove'){
+    S.plants = S.plants.filter(x => x.id !== p.id);
+    if (S.currentId === p.id) S.currentId = (S.plants.find(x => !x.dead) || {}).id || null;
+    save(); render(); toast(`已清除 ${p.name}，再種一株新的吧`);
+    return;
+  }
+  if (act === 'harvest'){
+    S.garden.unshift({ type: p.type, name: p.name, date: dateKey() });
+    S.plants = S.plants.filter(x => x.id !== p.id);
+    if (S.currentId === p.id) S.currentId = (S.plants.find(x => !x.dead) || {}).id || null;
+    save(); render(); toast(`🌼 ${p.name} 收成到花園了！`);
+    return;
+  }
+  if (S.timer && S.timer.mode === 'focus'){ toast('專注中不能換植物喔，先專心完成這一輪！'); return; }
+  if (p.dead){ toast(`${p.name} 已經枯死了，按「清除並重種」吧`); return; }
+  S.currentId = p.id;
+  if (S.timer) S.timer.plantId = p.id;   // 休息中換植物，下一輪就照顧它
+  save(); render();
+});
+
+$('#stage').addEventListener('click', e => { if (e.target.closest('[data-act="add"]')) openPlantModal(); });
+$('#addPlant').addEventListener('click', openPlantModal);
+
+$('#examForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#examName').value.trim(), date = $('#examDate').value;
+  if (!name || !date) return;
+  S.exams.push({ id: uid(), name, date });
+  save(); renderExams();
+  $('#examName').value = ''; $('#examDate').value = '';
+  const d = daysUntil(date);
+  toast(d >= 0 ? `📅 已加入：${name}，還有 ${d} 天` : `📅 已加入：${name}（日期已經過了）`);
+});
+$('#examList').addEventListener('click', e => {
+  const b = e.target.closest('.del'); if (!b) return;
+  S.exams = S.exams.filter(x => x.id !== b.dataset.id);
+  save(); renderExams();
+});
+
+$('#resetAll').addEventListener('click', () => {
+  if (confirm('確定要清除所有資料嗎？（植物、花園、考試、統計都會消失，無法復原）')){
+    localStorage.removeItem(KEY); S = defaultState(); render(); toast('已重置，重新開始吧 🌱');
+  }
+});
+
+/* =========================================================
+   啟動
+   ========================================================= */
+$('#examDate').min = dateKey();
+render();
+setInterval(tick, 250);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); renderStats(); } });
+</script>
+</body>
+</html>
