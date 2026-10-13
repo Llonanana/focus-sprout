@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>專注小盆栽 Focus Sprout</title>
+<script>
+  /* v1.3：在畫面出現前套用主題，避免閃一下 */
+  (function(){
+    var t = null;
+    try{ var d = JSON.parse(localStorage.getItem('focus-sprout-v1')); t = d && d.settings && d.settings.theme; }catch(e){}
+    if (!t) t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
@@ -14,6 +23,38 @@
     --clay:#c97b5a; --clay-d:#a9603f; --clay-l:#f5e1d6;
     --sand:#efe3cf; --red:#c0563f; --red-l:#f7ded6;
     --shadow:0 6px 22px rgba(110,90,60,.09);
+    --bg-a:#faf5ec; --bg-b:#e9dfcc; --tile:#fbf4e8; --tile-h:#f7ecda; --field:#fff; --sel:#f3f3e4;
+    --track:#e5d9c5; --sand-h:#e7d8bf; --green-lh:#d4e1c4; --red-lh:#f1cbbf; --paused:#ece6dc;
+    --stage-1:#f8efdf; --stage-2:#efe2cb; --glow:rgba(255,246,220,.95); --floor:#e3d3b8; --floor-line:#d8c5a6;
+    --dead-bg:#e6e1da; --dead-ink:#7a7168; --bloom-bg:#fbe3ea; --bloom-ink:#b45a72;
+    --overlay:rgba(60,45,30,.35); --toast-bg:#4a3f35; --toast-ink:#fff;
+  }
+  /* v1.3：深夜讀書模式 */
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#1d1a17; --card:#282320; --ink:#efe6d8; --muted:#a99b89; --line:#3b332c;
+    --green:#7da56e; --green-d:#9cc58b; --green-l:#2e3a2a;
+    --clay:#d08a6a; --clay-d:#e7a584; --clay-l:#3d2b23;
+    --sand:#362e28; --red:#e57f68; --red-l:#3f2621;
+    --shadow:0 8px 26px rgba(0,0,0,.4);
+    --bg-a:#26221e; --bg-b:#16130f; --tile:#312b25; --tile-h:#3a332c; --field:#211d1a; --sel:#2e3a2a;
+    --track:#4a4037; --sand-h:#453b33; --green-lh:#3a4a33; --red-lh:#4d2e27; --paused:#38312b;
+    --stage-1:#252a3b; --stage-2:#2f2a28; --glow:rgba(0,0,0,0); --floor:#3a3029; --floor-line:#4a3e34;
+    --dead-bg:#3a3530; --dead-ink:#aba196; --bloom-bg:#45303a; --bloom-ink:#f3a9bd;
+    --overlay:rgba(0,0,0,.55); --toast-bg:#efe6d8; --toast-ink:#2a2420;
+  }
+  :root[data-theme="dark"] .stage{
+    background:
+      radial-gradient(1.5px 1.5px at 18% 14%, #fff8 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 42% 8%, #fff7 50%, transparent 51%),
+      radial-gradient(1px 1px at 62% 22%, #fff9 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 30% 30%, #fff5 50%, transparent 51%),
+      radial-gradient(1px 1px at 12% 40%, #fff6 50%, transparent 51%),
+      linear-gradient(180deg,var(--stage-1) 0%, var(--stage-2) 100%);
+  }
+  :root[data-theme="dark"] .stage::before{
+    top:22px; right:26px; width:34px; height:34px; border-radius:50%;
+    background:#f3ead2; box-shadow:0 0 34px 10px rgba(243,234,210,.22), inset -9px -4px 0 #e2d6b8;
   }
   *{box-sizing:border-box}
   body{
@@ -21,8 +62,8 @@
     font-family:"Noto Sans TC", system-ui, -apple-system, "Microsoft JhengHei", sans-serif;
     background:var(--bg);
     background-image:
-      radial-gradient(circle at 8% -5%, #faf5ec 0, transparent 38%),
-      radial-gradient(circle at 105% 105%, #e9dfcc 0, transparent 42%);
+      radial-gradient(circle at 8% -5%, var(--bg-a) 0, transparent 38%),
+      radial-gradient(circle at 105% 105%, var(--bg-b) 0, transparent 42%);
     min-height:100vh;
   }
   button{font:inherit; color:inherit; cursor:pointer}
@@ -48,13 +89,13 @@
   .hero{display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:18px; align-items:center}
   .stage{
     position:relative; border-radius:18px; min-height:300px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
-    background:linear-gradient(180deg,#f8efdf 0%, #efe2cb 100%); padding:16px 12px 14px; overflow:hidden;
+    background:linear-gradient(180deg,var(--stage-1) 0%, var(--stage-2) 100%); padding:16px 12px 14px; overflow:hidden;
   }
   .stage::before{ /* window light */
     content:""; position:absolute; top:-40px; right:-30px; width:180px; height:180px; border-radius:50%;
-    background:radial-gradient(circle, rgba(255,246,220,.95) 0, rgba(255,246,220,0) 70%);
+    background:radial-gradient(circle, var(--glow) 0, transparent 70%);
   }
-  .stage::after{content:""; position:absolute; left:0; right:0; bottom:0; height:58px; background:#e3d3b8; border-top:3px solid #d8c5a6}
+  .stage::after{content:""; position:absolute; left:0; right:0; bottom:0; height:58px; background:var(--floor); border-top:3px solid var(--floor-line)}
   .stage .plant-svg{width:210px; height:auto; position:relative; z-index:1; margin-bottom:-6px}
   .stage-label{position:relative; z-index:1; margin-top:2px; text-align:center}
   .stage-label b{font-size:16px}
@@ -71,12 +112,12 @@
   .pill{font-size:12.5px; padding:3px 12px; border-radius:999px; background:var(--sand); color:var(--muted); font-weight:500}
   .pill.focus{background:var(--green-l); color:var(--green-d)}
   .pill.break{background:var(--clay-l); color:var(--clay-d)}
-  .pill.paused{background:#ece6dc; color:var(--muted)}
+  .pill.paused{background:var(--paused); color:var(--muted)}
   .time{font-family:"Nunito", system-ui, sans-serif; font-weight:800; font-size:56px; letter-spacing:.02em; line-height:1.1; font-variant-numeric:tabular-nums}
   .today-count{font-size:13px; color:var(--muted)}
 
   .chips{display:flex; flex-wrap:wrap; gap:6px; justify-content:center}
-  .chip{border:1px solid var(--line); background:#fff; padding:5px 12px; border-radius:999px; font-size:13px}
+  .chip{border:1px solid var(--line); background:var(--field); padding:5px 12px; border-radius:999px; font-size:13px}
   .chip.on{background:var(--green); border-color:var(--green); color:#fff}
   .chip.test{border-style:dashed}
   .chip.test.on{background:var(--clay); border-color:var(--clay)}
@@ -87,9 +128,9 @@
   .btn.primary{background:var(--green); color:#fff}
   .btn.primary:hover:not(:disabled){background:var(--green-d)}
   .btn.ghost{background:var(--sand); color:var(--ink)}
-  .btn.ghost:hover:not(:disabled){background:#e7d8bf}
+  .btn.ghost:hover:not(:disabled){background:var(--sand-h)}
   .btn.warn{background:var(--red-l); color:var(--red)}
-  .btn.warn:hover{background:#f1cbbf}
+  .btn.warn:hover{background:var(--red-lh)}
   .caring{font-size:13.5px; color:var(--muted); text-align:center}
   .caring b{color:var(--ink)}
   .caring.alert{color:var(--red)}
@@ -97,18 +138,18 @@
   /* ---------- plant shelf ---------- */
   .shelf{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px}
   .pot-card{
-    position:relative; border:2px solid transparent; background:#fbf4e8; border-radius:18px; padding:10px 10px 12px;
+    position:relative; border:2px solid transparent; background:var(--tile); border-radius:18px; padding:10px 10px 12px;
     text-align:center; cursor:pointer; transition:border-color .2s, transform .15s, background .2s;
   }
-  .pot-card:hover{transform:translateY(-2px); background:#f8eedd}
-  .pot-card.selected{border-color:var(--green); background:#f3f3e4}
+  .pot-card:hover{transform:translateY(-2px); background:var(--tile-h)}
+  .pot-card.selected{border-color:var(--green); background:var(--sel)}
   .pot-card.dead{cursor:default}
   .pot-card .plant-svg{width:96px; height:auto}
   .sel-tag{position:absolute; top:8px; left:8px; font-size:11px; background:var(--green); color:#fff; padding:1px 8px; border-radius:999px}
   .pc-name{font-weight:700; font-size:15px; margin-top:2px; word-break:break-all}
   .pc-sub{font-size:12px; color:var(--muted)}
   .dots{display:flex; justify-content:center; gap:4px; margin:7px 0 6px}
-  .dot{width:8px; height:8px; border-radius:50%; background:#e3d7c3}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--track)}
   .dot.on{background:var(--green)}
   .dot.stage-end{margin-right:4px}
   .pc-hint{font-size:12px; color:var(--muted)}
@@ -117,11 +158,11 @@
   .mini.danger{background:var(--red-l); color:var(--red)}
   .badge{position:absolute; top:8px; right:8px; font-size:11px; padding:1px 8px; border-radius:999px}
   .badge.withered{background:var(--clay-l); color:var(--clay-d)}
-  .badge.dead{background:#e6e1da; color:#7a7168}
-  .badge.bloom{background:#fbe3ea; color:#b45a72}
+  .badge.dead{background:var(--dead-bg); color:var(--dead-ink)}
+  .badge.bloom{background:var(--bloom-bg); color:var(--bloom-ink)}
   .empty{color:var(--muted); font-size:14px; text-align:center; padding:22px 10px; border:2px dashed var(--line); border-radius:16px; grid-column:1/-1}
   .add-btn{border:none; background:var(--green-l); color:var(--green-d); font-weight:700; font-size:13.5px; padding:6px 14px; border-radius:999px}
-  .add-btn:hover:not(:disabled){background:#d4e1c4}
+  .add-btn:hover:not(:disabled){background:var(--green-lh)}
 
   /* plant states & animation */
   .plant{transform-box:fill-box; transform-origin:50% 100%; transition:transform .7s, filter .7s, opacity .7s}
@@ -140,11 +181,11 @@
 
   /* ---------- exams ---------- */
   .exam-form{display:grid; grid-template-columns:minmax(0,1fr) 140px auto; gap:8px; margin-bottom:12px}
-  .exam-form input{width:100%; border:1px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font:inherit; font-size:14px; color:var(--ink)}
+  .exam-form input{width:100%; border:1px solid var(--line); background:var(--field); border-radius:12px; padding:8px 10px; font:inherit; font-size:14px; color:var(--ink)}
   .exam-form input:focus{outline:2px solid var(--green-l); border-color:var(--green)}
   .exam-form button{border:none; border-radius:12px; padding:0 14px; background:var(--green); color:#fff; font-weight:700}
   .exam-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
-  .exam{display:flex; align-items:center; gap:12px; background:#fbf4e8; border-radius:14px; padding:9px 12px}
+  .exam{display:flex; align-items:center; gap:12px; background:var(--tile); border-radius:14px; padding:9px 12px}
   .exam .days{min-width:62px; text-align:center; font-family:"Nunito",sans-serif; font-weight:800; font-size:22px; line-height:1.05; color:var(--green-d)}
   .exam .days small{display:block; font-family:"Noto Sans TC",sans-serif; font-size:11px; font-weight:500; color:var(--muted)}
   .exam.soon{background:var(--red-l)}
@@ -158,21 +199,21 @@
 
   /* ---------- stats ---------- */
   .stat-row{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px}
-  .stat{background:#fbf4e8; border-radius:14px; padding:10px 8px; text-align:center}
+  .stat{background:var(--tile); border-radius:14px; padding:10px 8px; text-align:center}
   .stat b{display:block; font-family:"Nunito",sans-serif; font-weight:800; font-size:22px; line-height:1.2}
   .stat span{font-size:12px; color:var(--muted)}
   .bars{display:grid; grid-template-columns:repeat(7,1fr); gap:8px; align-items:end; height:150px}
   .bar-col{display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:4px}
   .bar-val{font-size:11.5px; color:var(--muted); min-height:16px}
   .bar{width:100%; max-width:30px; border-radius:8px 8px 4px 4px; background:var(--green); min-height:4px; transition:height .5s}
-  .bar.zero{background:#e6dac6}
+  .bar.zero{background:var(--track)}
   .bar.today{background:var(--clay)}
   .bar-day{font-size:12.5px; color:var(--muted)}
   .bar-day.today{color:var(--clay-d); font-weight:700}
 
   /* ---------- garden ---------- */
   .garden{display:grid; grid-template-columns:repeat(auto-fill, minmax(82px,1fr)); gap:10px}
-  .flower{text-align:center; background:#fbf4e8; border-radius:14px; padding:6px 4px 8px}
+  .flower{text-align:center; background:var(--tile); border-radius:14px; padding:6px 4px 8px}
   .flower .plant-svg{width:56px; height:auto}
   .flower b{display:block; font-size:12.5px; word-break:break-all}
   .flower span{font-size:11px; color:var(--muted)}
@@ -182,37 +223,37 @@
   .link-btn:hover{color:var(--red)}
 
   /* ---------- modal & toast ---------- */
-  .modal-bg{position:fixed; inset:0; background:rgba(60,45,30,.35); display:none; align-items:center; justify-content:center; padding:16px; z-index:20}
+  .modal-bg{position:fixed; inset:0; background:var(--overlay); display:none; align-items:center; justify-content:center; padding:16px; z-index:20}
   .modal-bg.open{display:flex}
   .modal{background:var(--card); border-radius:22px; padding:22px; width:100%; max-width:440px; box-shadow:0 20px 50px rgba(60,40,20,.25); animation:rise .25s ease-out}
   @keyframes rise{from{transform:translateY(14px); opacity:0}to{transform:none; opacity:1}}
   .modal h3{margin:0 0 6px; font-size:18px}
   .modal p{margin:0 0 14px; color:var(--muted); font-size:14px}
   .type-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px}
-  .type-opt{border:2px solid var(--line); background:#fbf4e8; border-radius:14px; padding:6px 2px 8px; text-align:center; font-size:12.5px}
+  .type-opt{border:2px solid var(--line); background:var(--tile); border-radius:14px; padding:6px 2px 8px; text-align:center; font-size:12.5px}
   .type-opt .plant-svg{width:100%; max-width:64px; height:auto}
-  .type-opt.on{border-color:var(--green); background:#f1f3e3}
+  .type-opt.on{border-color:var(--green); background:var(--sel)}
   .modal label{font-size:13px; color:var(--muted)}
-  .modal input[type=text]{width:100%; margin:4px 0 16px; border:1px solid var(--line); border-radius:12px; padding:9px 12px; font:inherit; color:var(--ink); background:#fff}
+  .modal input[type=text]{width:100%; margin:4px 0 16px; border:1px solid var(--line); border-radius:12px; padding:9px 12px; font:inherit; color:var(--ink); background:var(--field)}
   .modal .row{display:flex; gap:10px; justify-content:flex-end}
   /* ---------- v1.1：說明、每日目標、彩帶 ---------- */
   .header-right{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
   .help-btn{border:1px solid var(--line); background:var(--green-l); color:var(--green-d); font-weight:700; font-size:13.5px; padding:6px 14px; border-radius:999px}
-  .help-btn:hover{background:#d4e1c4}
-  .goal{display:flex; align-items:center; gap:10px; width:100%; max-width:320px; border:1px solid var(--line); background:#fbf4e8; border-radius:14px; padding:8px 12px; font-size:13px}
-  .goal:hover{background:#f6ecdb}
+  .help-btn:hover{background:var(--green-lh)}
+  .goal{display:flex; align-items:center; gap:10px; width:100%; max-width:320px; border:1px solid var(--line); background:var(--tile); border-radius:14px; padding:8px 12px; font-size:13px}
+  .goal:hover{background:var(--tile-h)}
   .goal-label{white-space:nowrap; color:var(--muted)}
-  .goal-bar{flex:1; height:8px; border-radius:999px; background:#e8dcc7; overflow:hidden}
+  .goal-bar{flex:1; height:8px; border-radius:999px; background:var(--track); overflow:hidden}
   .goal-fill{display:block; height:100%; width:0; background:var(--clay); border-radius:999px; transition:width .5s}
   .goal.done .goal-fill{background:var(--green)}
   .goal-num{font-family:"Nunito",sans-serif; font-weight:800; white-space:nowrap}
   .guide{list-style:none; padding:0; margin:0 0 16px; display:flex; flex-direction:column; gap:10px}
-  .guide li{display:flex; gap:10px; align-items:flex-start; font-size:14px; background:#fbf4e8; border-radius:12px; padding:9px 12px}
+  .guide li{display:flex; gap:10px; align-items:flex-start; font-size:14px; background:var(--tile); border-radius:12px; padding:9px 12px}
   .guide li span{font-size:20px; line-height:1.2}
   .stepper{display:flex; align-items:center; justify-content:center; gap:18px; margin:6px 0 18px}
   .stepper button{width:44px; height:44px; border-radius:50%; border:none; background:var(--sand); font-size:22px; font-weight:700}
   .stepper b{font-family:"Nunito",sans-serif; font-size:40px; min-width:60px; text-align:center}
-  .modal input[type=number]{width:100%; margin:4px 0 16px; border:1px solid var(--line); border-radius:12px; padding:9px 12px; font:inherit; font-size:18px; color:var(--ink); background:#fff}
+  .modal input[type=number]{width:100%; margin:4px 0 16px; border:1px solid var(--line); border-radius:12px; padding:9px 12px; font:inherit; font-size:18px; color:var(--ink); background:var(--field)}
   /* ---------- v1.2：背景音、週次切換、植物編輯 ---------- */
   .sound-row{display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:6px 8px; width:100%; max-width:340px; font-size:13px}
   .sound-label{color:var(--muted)}
@@ -222,18 +263,45 @@
   .sound-hint{width:100%; text-align:center; font-size:11.5px; color:var(--muted)}
   .week-nav{display:flex; align-items:center; gap:4px}
   .week-nav button{border:none; background:var(--sand); width:26px; height:26px; border-radius:50%; font-size:16px; line-height:1}
-  .week-nav button:hover:not(:disabled){background:#e7d8bf}
+  .week-nav button:hover:not(:disabled){background:var(--sand-h)}
   .bar-col{cursor:pointer}
   .edit-btn{border:none; background:none; font-size:12px; padding:2px 4px; border-radius:6px; opacity:.55; vertical-align:1px}
   .edit-btn:hover{opacity:1; background:rgba(0,0,0,.06)}
   .modal .danger-link{border:none; background:none; color:var(--red); font-size:13px; padding:0; margin-right:auto; text-decoration:underline}
+
+  /* ---------- v1.3：主題按鈕、專注任務、讀書紀錄 ---------- */
+  .theme-btn{background:var(--sand); color:var(--ink)}
+  .theme-btn:hover{background:var(--sand-h)}
+  .task-box{width:100%; max-width:340px}
+  .task-input-wrap{position:relative}
+  .task-input{width:100%; border:1px solid var(--line); background:var(--field); color:var(--ink); border-radius:12px; padding:9px 34px 9px 12px; font:inherit; font-size:14px}
+  .task-input:focus{outline:2px solid var(--green-l); border-color:var(--green)}
+  .task-input::placeholder{color:var(--muted)}
+  .task-clear{position:absolute; right:6px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--muted); width:24px; height:24px; border-radius:50%; font-size:15px}
+  .task-clear:hover{background:var(--sand)}
+  .task-quick{display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; justify-content:center}
+  .task-quick .chip{padding:3px 10px; font-size:12px}
+  .task-now{text-align:center; font-size:14px; background:var(--tile); border-radius:12px; padding:8px 12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .task-now span{color:var(--muted)}
+  .study-log{margin-top:16px; border-top:1px dashed var(--line); padding-top:12px}
+  .log-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:14px}
+  .log-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
+  .log-item{display:flex; align-items:center; gap:10px; background:var(--tile); border-radius:12px; padding:7px 12px; font-size:13.5px}
+  .log-item .name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .log-item .name.none{color:var(--muted)}
+  .log-item .meta2{color:var(--muted); font-size:12px; white-space:nowrap}
+  .log-item .mins{font-family:"Nunito",sans-serif; font-weight:800; white-space:nowrap; min-width:56px; text-align:right}
+  .log-bar{height:4px; border-radius:999px; background:var(--green); opacity:.7; margin-top:4px}
+  .log-empty{color:var(--muted); font-size:13px; text-align:center; padding:10px; border:2px dashed var(--line); border-radius:12px}
+  .bar-col.picked .bar{outline:2px solid var(--ink); outline-offset:2px}
+  .bar-col.picked .bar-day{color:var(--ink); font-weight:700}
 
   .confetti{position:fixed; top:-14px; width:8px; height:13px; border-radius:2px; z-index:40; pointer-events:none; animation:confetti-fall linear forwards}
   @keyframes confetti-fall{to{transform:translate(var(--dx), 108vh) rotate(var(--rot))}}
 
   .toast{
     position:fixed; left:50%; bottom:24px; transform:translate(-50%,30px); opacity:0; pointer-events:none;
-    background:#4a3f35; color:#fff; padding:11px 20px; border-radius:14px; font-size:14.5px; z-index:30;
+    background:var(--toast-bg); color:var(--toast-ink); padding:11px 20px; border-radius:14px; font-size:14.5px; z-index:30;
     transition:all .3s; max-width:calc(100% - 32px); text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.2)
   }
   .toast.show{opacity:1; transform:translate(-50%,0)}
@@ -263,6 +331,7 @@
       <h1>專注小盆栽<small>每一次專注，都讓你的植物長大一點</small></h1>
     </div>
     <div class="header-right">
+      <button class="help-btn theme-btn" id="themeBtn" aria-label="切換深夜模式">🌙 深夜模式</button>
       <button class="help-btn" id="helpBtn">❓ 玩法說明</button>
       <div class="date-chip" id="today"></div>
     </div>
@@ -293,6 +362,7 @@
               <button class="chip" data-sec="custom" id="customChip">自訂</button>
               <button class="chip test" data-sec="10" title="示範用：10 秒專注、5 秒休息">⚡ 測試 10 秒</button>
             </div>
+            <div class="task-box" id="taskBox"></div>
             <div class="controls" id="controls"></div>
             <div class="caring" id="caring"></div>
             <button class="goal" id="goalBox" title="點一下修改每日目標">
@@ -347,6 +417,10 @@
           <div class="stat"><b id="statStreak">0</b><span>連續天數 🔥</span></div>
         </div>
         <div class="bars" id="bars"></div>
+        <div class="study-log">
+          <div class="log-head"><b id="logTitle">📝 本週讀了什麼</b><button class="link-btn" id="logClear" hidden>看整週</button></div>
+          <ul class="log-list" id="logList"></ul>
+        </div>
       </section>
 
       <!-- 花園 -->
@@ -358,7 +432,7 @@
   </div>
 
   <footer>
-    <span>資料只會存在你自己的瀏覽器（localStorage）· 專注小盆栽 v1.2</span>
+    <span>資料只會存在你自己的瀏覽器（localStorage）· 專注小盆栽 v1.3</span>
     <button class="link-btn" id="resetAll">重置所有資料</button>
   </footer>
 </div>
@@ -396,7 +470,9 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6
 const defaultState = () => ({
   plants: [], currentId: null, garden: [], exams: [],
   log: {},                         // { '2026-10-12': { sec: 1500, n: 1 } }
-  settings: { focusSec: 1500, dailyGoal: 4, sound: 'off', volume: 0.5 },
+  settings: { focusSec: 1500, dailyGoal: 4, sound: 'off', volume: 0.5, theme: null },
+  sessions: [],                    // v1.3：每次完成的專注 { d:'2026-10-13', t:'14:05', sec, task, type }
+  taskDraft: '',
   seenGuide: false,
   timer: null                      // { mode:'focus'|'break', dur, endAt, left, running, plantId }
 });
@@ -547,7 +623,8 @@ function startFocus(){
   unlockAudio();
   if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
   const dur = focusSec() * 1000;
-  S.timer = { mode:'focus', dur, endAt: Date.now() + dur, left: dur, running: true, plantId: p.id };
+  const task = (S.taskDraft || '').trim().slice(0, 30);
+  S.timer = { mode:'focus', dur, endAt: Date.now() + dur, left: dur, running: true, plantId: p.id, task };
   save(); render();
 }
 function pauseTimer(){
@@ -592,6 +669,9 @@ function giveUp(){
 function finishFocus(){
   const t = S.timer;
   const sec = Math.round(t.dur / 1000);
+  const now = new Date();
+  S.sessions.push({ d: dateKey(now), t: `${pad(now.getHours())}:${pad(now.getMinutes())}`, sec, task: t.task || '', type: (getPlant(t.plantId) || {}).type || null });
+  if (S.sessions.length > 800) S.sessions = S.sessions.slice(-800);
   const k = dateKey();
   S.log[k] = S.log[k] || { sec:0, n:0 };
   S.log[k].sec += sec; S.log[k].n += 1;
@@ -616,6 +696,7 @@ function finishFocus(){
       msg = `🍅 完成一顆番茄！${p.name} 已經盛開，記得收成喔`;
     }
   }
+  if (t.task) msg += `　📝 ${t.task}`;
   const b = breakSec() * 1000;
   S.timer = { mode:'break', dur:b, endAt: Date.now() + b, left: b, running: true, plantId: t.plantId };
   save(); render(); animateHero('pop');
@@ -874,7 +955,7 @@ function renderStats(){
   $('#bars').innerHTML = data.map(x => {
     const h = x.sec ? Math.max(6, Math.round(x.sec / max * 100)) : 3;
     const isToday = x.k === todayK;
-    return `<div class="bar-col" data-k="${x.k}" title="${x.d.getMonth()+1}/${x.d.getDate()}：${fmtMin(x.sec)}・${x.n} 顆番茄">
+    return `<div class="bar-col ${x.k === pickedDay ? 'picked' : ''}" data-k="${x.k}" title="${x.d.getMonth()+1}/${x.d.getDate()}：${fmtMin(x.sec)}・${x.n} 顆番茄">
       <div class="bar-val">${x.sec ? fmtMin(x.sec) : ''}</div>
       <div class="bar ${x.sec ? '' : 'zero'} ${isToday ? 'today' : ''}" style="height:${h}%"></div>
       <div class="bar-day ${isToday ? 'today' : ''}">${WD[x.d.getDay()]}</div>
@@ -883,6 +964,95 @@ function renderStats(){
   const tk = S.log[todayK];
   $('#todayCount').textContent = tk && tk.n ? `今天完成 ${tk.n} 顆 🍅` : '今天還沒開始';
   renderGoal();
+  renderStudyLog(days);
+}
+
+/* ---------- v1.3：讀書紀錄（依任務彙整） ---------- */
+let pickedDay = null;
+function renderStudyLog(days){
+  const keys = new Set(days.map(dateKey));
+  if (pickedDay && !keys.has(pickedDay)) pickedDay = null;
+  const list = S.sessions.filter(x => pickedDay ? x.d === pickedDay : keys.has(x.d));
+  if (pickedDay){
+    const [y,m,d] = pickedDay.split('-').map(Number);
+    $('#logTitle').textContent = `📝 ${m}/${d}（${WD[new Date(y,m-1,d).getDay()]}）讀了什麼`;
+  } else {
+    $('#logTitle').textContent = weekOffset === 0 ? '📝 本週讀了什麼' : '📝 這週讀了什麼';
+  }
+  $('#logClear').hidden = !pickedDay;
+  const box = $('#logList');
+  if (!list.length){
+    box.innerHTML = `<div class="log-empty">${pickedDay ? '這天沒有紀錄' : '開始專注前寫下「這輪要做什麼」，這裡就會整理出你讀了哪些東西 📚'}</div>`;
+    return;
+  }
+  const groups = {};
+  list.forEach(x => {
+    const k = x.task || '';
+    groups[k] = groups[k] || { sec:0, n:0, last:'' };
+    groups[k].sec += x.sec; groups[k].n += 1; groups[k].last = x.t;
+  });
+  const rows = Object.entries(groups).sort((a,b) => b[1].sec - a[1].sec);
+  const top = rows[0][1].sec;
+  box.innerHTML = rows.slice(0, 8).map(([name, g]) => `
+    <li class="log-item"><div style="flex:1;min-width:0">
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="name ${name ? '' : 'none'}">${name ? esc(name) : '（沒有填寫任務）'}</span>
+        <span class="meta2">${g.n} 顆 🍅${pickedDay ? '・最後 ' + g.last : ''}</span>
+        <span class="mins">${fmtMin(g.sec)}</span>
+      </div>
+      <div class="log-bar" style="width:${Math.max(4, g.sec / top * 100)}%"></div>
+    </div></li>`).join('') + (rows.length > 8 ? `<div class="log-empty" style="border:none;padding:2px">還有 ${rows.length - 8} 項較少的紀錄</div>` : '');
+}
+
+/* ---------- v1.3：專注任務輸入 ---------- */
+let lastTaskSig = '';
+function renderTaskBox(force){
+  const t = S.timer;
+  const upcoming = S.exams.map(e => ({ ...e, d: daysUntil(e.date) })).filter(e => e.d >= 0).sort((a,b) => a.d - b.d).slice(0, 3);
+  const sig = t ? `run|${t.task || ''}` : `idle|${upcoming.map(e => e.name).join(',')}`;
+  if (!force && sig === lastTaskSig) return;
+  lastTaskSig = sig;
+  const box = $('#taskBox');
+  if (t){
+    box.innerHTML = t.task
+      ? `<div class="task-now" title="${esc(t.task)}"><span>📝 ${t.mode === 'focus' ? '正在做' : '剛剛完成'}：</span><b>${esc(t.task)}</b></div>`
+      : '';
+    return;
+  }
+  box.innerHTML = `
+    <div class="task-input-wrap">
+      <input class="task-input" id="taskInput" maxlength="30" placeholder="📝 這輪要做什麼？例：微積分第 3 章" value="${esc(S.taskDraft || '')}">
+      <button class="task-clear" id="taskClear" aria-label="清除任務" ${S.taskDraft ? '' : 'hidden'}>×</button>
+    </div>
+    ${upcoming.length ? `<div class="task-quick">${upcoming.map(e => `<button class="chip" data-task="${esc(e.name)}">📚 ${esc(e.name)}</button>`).join('')}</div>` : ''}`;
+}
+$('#taskBox').addEventListener('input', e => {
+  if (e.target.id !== 'taskInput') return;
+  S.taskDraft = e.target.value; save();
+  $('#taskClear').hidden = !S.taskDraft;
+});
+$('#taskBox').addEventListener('keydown', e => {
+  if (e.target.id === 'taskInput' && e.key === 'Enter'){ e.target.blur(); startFocus(); }
+});
+$('#taskBox').addEventListener('click', e => {
+  if (e.target.closest('#taskClear')){ S.taskDraft = ''; save(); renderTaskBox(true); $('#taskInput').focus(); return; }
+  const q = e.target.closest('[data-task]');
+  if (q){
+    const cur = (S.taskDraft || '').trim();
+    S.taskDraft = cur && !cur.startsWith(q.dataset.task) ? `${q.dataset.task} ${cur}` : (cur || q.dataset.task + ' ');
+    save(); renderTaskBox(true);
+    const inp = $('#taskInput'); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+  }
+});
+
+/* ---------- v1.3：深夜模式 ---------- */
+function currentTheme(){
+  return S.settings.theme || ((window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+}
+function applyTheme(){
+  const th = currentTheme();
+  document.documentElement.setAttribute('data-theme', th);
+  $('#themeBtn').textContent = th === 'dark' ? '☀️ 白天模式' : '🌙 深夜模式';
 }
 
 /* ---------- v1.1：每日目標 ---------- */
@@ -916,7 +1086,8 @@ function openGuide(){
       <li><span>🍅</span><div><b>選好植物，開始專注</b><br>預設專注 25 分鐘、休息 5 分鐘，也可以自訂時間。</div></li>
       <li><span>🌱</span><div><b>每 ${PER_STAGE} 次專注長大一級</b><br>完成 ${BLOOM} 次就會開花，可以收成到花園。</div></li>
       <li><span>🥀</span><div><b>中途放棄會枯萎</b><br>再完成 1 次專注就能救回；連續放棄 2 次就會枯死。</div></li>
-      <li><span>🎯</span><div><b>設定每日目標</b><br>還能開背景白噪音，搭配考試倒數和每週統計掌握進度。</div></li>
+      <li><span>📝</span><div><b>寫下這輪要做什麼</b><br>統計區會整理出你這週讀了哪些科目、各花多少時間。</div></li>
+      <li><span>🌙</span><div><b>晚上讀書？</b><br>右上角可切換深夜模式，還有每日目標和背景白噪音。</div></li>
     </ul>
     <div class="row"><button class="btn primary" data-close>開始吧！</button></div>`);
   if (!S.seenGuide){ S.seenGuide = true; save(); }
@@ -959,6 +1130,7 @@ function render(){
   renderToday(); renderChips(); renderStage(); renderCaring(); renderShelf();
   renderExams(); renderStats(); renderGarden(); renderTimer();
   renderSound(); syncAmbient();
+  applyTheme(); renderTaskBox(true);
 }
 
 /* =========================================================
@@ -1181,10 +1353,16 @@ $('#weekPrev').addEventListener('click', () => { weekOffset--; renderStats(); })
 $('#weekNext').addEventListener('click', () => { if (weekOffset < 0){ weekOffset++; renderStats(); } });
 $('#bars').addEventListener('click', e => {
   const col = e.target.closest('.bar-col'); if (!col) return;
-  const [y,m,d] = col.dataset.k.split('-').map(Number);
-  const x = S.log[col.dataset.k] || { sec:0, n:0 };
-  toast(x.n ? `📊 ${m}/${d}（${WD[new Date(y,m-1,d).getDay()]}）專注 ${fmtMin(x.sec)}，完成 ${x.n} 顆番茄` : `📊 ${m}/${d} 這天沒有專注紀錄`);
+  pickedDay = pickedDay === col.dataset.k ? null : col.dataset.k;   // v1.3：點長條＝只看那天的讀書紀錄，再點一次取消
+  renderStats();
 });
+$('#logClear').addEventListener('click', () => { pickedDay = null; renderStats(); });
+$('#themeBtn').addEventListener('click', () => {
+  S.settings.theme = currentTheme() === 'dark' ? 'light' : 'dark';
+  save(); applyTheme();
+  toast(S.settings.theme === 'dark' ? '🌙 深夜讀書模式，眼睛輕鬆一點' : '☀️ 切回白天模式');
+});
+if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { if (!S.settings.theme) applyTheme(); });
 
 $('#stage').addEventListener('click', e => { if (e.target.closest('[data-act="add"]')) openPlantModal(); });
 $('#addPlant').addEventListener('click', openPlantModal);
@@ -1194,7 +1372,7 @@ $('#examForm').addEventListener('submit', e => {
   const name = $('#examName').value.trim(), date = $('#examDate').value;
   if (!name || !date) return;
   S.exams.push({ id: uid(), name, date });
-  save(); renderExams();
+  save(); renderExams(); renderTaskBox();
   $('#examName').value = ''; $('#examDate').value = '';
   const d = daysUntil(date);
   toast(d >= 0 ? `📅 已加入：${name}，還有 ${d} 天` : `📅 已加入：${name}（日期已經過了）`);
@@ -1202,7 +1380,7 @@ $('#examForm').addEventListener('submit', e => {
 $('#examList').addEventListener('click', e => {
   const b = e.target.closest('.del'); if (!b) return;
   S.exams = S.exams.filter(x => x.id !== b.dataset.id);
-  save(); renderExams();
+  save(); renderExams(); renderTaskBox();
 });
 
 $('#resetAll').addEventListener('click', () => {
